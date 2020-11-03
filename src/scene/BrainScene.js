@@ -1,6 +1,7 @@
 import React, {Component} from "react";
 import * as THREE from "three";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
+import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
 
 const style = {
   height: 750, // we can control scene size by setting container dimensions
@@ -34,7 +35,7 @@ class BrainScene extends Component {
         0.1, // near plane
         1000, // far plane
     );
-    this.camera.position.z = 5; // is used here to set some distance from a cube that is located at z = 0
+    this.camera.position.z = 200; // is used here to set some distance from a cube that is located at z = 0
     // OrbitControls allow a camera to orbit around the object
     // https://threejs.org/docs/#examples/controls/OrbitControls
     this.controls = new OrbitControls(this.camera, this.el);
@@ -47,15 +48,13 @@ class BrainScene extends Component {
   // Code below is taken from Three.js BoxGeometry example
   // https://threejs.org/docs/#api/en/geometries/BoxGeometry
   addCustomSceneObjects() {
-    const geometry = new THREE.BoxGeometry(2, 2, 2);
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x156289,
-      emissive: 0x072534,
-      side: THREE.DoubleSide,
-      flatShading: true,
-    });
-    this.cube = new THREE.Mesh(geometry, material);
-    this.scene.add(this.cube);
+    const scene = this.scene;
+
+    const loader = new GLTFLoader();
+    loader.setPath("/models/");
+
+    this.loadModel(loader, scene, "lh.glb");
+    this.loadModel(loader, scene, "rh.glb");
 
     const lights = [];
     lights[0] = new THREE.PointLight(0xffffff, 1, 0);
@@ -71,10 +70,7 @@ class BrainScene extends Component {
     this.scene.add(lights[2]);
   };
 
-  startAnimationLoop() {
-    this.cube.rotation.x += 0.01;
-    this.cube.rotation.y += 0.01;
-
+  startAnimationLoop = () => {
     this.renderer.render(this.scene, this.camera);
 
     // The window.requestAnimationFrame() method tells the browser that you wish to perform
@@ -96,7 +92,15 @@ class BrainScene extends Component {
   };
 
   render() {
-    return <div style={style} ref={(ref) => (this.el = ref)} />;
+    return <div style={style} ref={(ref) => (this.el = ref)}/>;
+  }
+
+  loadModel(loader, scene, model) {
+    loader.load(model, function(gltf) {
+      scene.add(gltf.scene);
+    }, undefined, function(error) {
+      console.error(error);
+    });
   }
 }
 

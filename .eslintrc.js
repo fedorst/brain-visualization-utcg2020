@@ -21,5 +21,8 @@ module.exports = {
     "quotes": ["error", "double"],
     "max-len": ["error", 120],
     "require-jsdoc": 0,
+    "linebreak-style": 0,
+    "no-invalid-this": 0,
+    "func-style": ["error", "declaration", {"allowArrowFunctions": true}],
   },
 };
