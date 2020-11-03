@@ -97,6 +97,10 @@ class BrainScene extends Component {
 
   loadModel(loader, scene, model) {
     loader.load(model, function(gltf) {
+      model = gltf.scene.children[0];
+      model.material.opacity = 0.7;
+      model.material.transparent = true;
+
       scene.add(gltf.scene);
     }, undefined, function(error) {
       console.error(error);
