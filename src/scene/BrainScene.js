@@ -2,6 +2,7 @@ import React, {Component} from "react";
 import * as THREE from "three";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
+import getNPY from "../helpers/getNPY";
 
 const style = {
   height: 750, // we can control scene size by setting container dimensions
@@ -92,6 +93,7 @@ class BrainScene extends Component {
   };
 
   render() {
+    getNPY();
     return <div style={style} ref={(ref) => (this.el = ref)}/>;
   }
 
