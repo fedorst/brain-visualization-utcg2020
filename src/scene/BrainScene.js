@@ -2,17 +2,27 @@ import React, {Component} from "react";
 import * as THREE from "three";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
+import getNPY from "../helpers/getNPY";
 
 const style = {
   height: 750, // we can control scene size by setting container dimensions
 };
 
 class BrainScene extends Component {
+  state = {
+    brainData: [],
+  }
+
   componentDidMount() {
     this.sceneSetup();
     this.addCustomSceneObjects();
     this.startAnimationLoop();
     window.addEventListener("resize", this.handleWindowResize);
+    getNPY((res) => {
+      this.setState({
+        brainData: res,
+      });
+    });
   }
 
   componentWillUnmount() {
@@ -79,7 +89,7 @@ class BrainScene extends Component {
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
-  handleWindowResize() {
+  handleWindowResize = () => {
     const width = this.el.clientWidth;
     const height = this.el.clientHeight;
 
