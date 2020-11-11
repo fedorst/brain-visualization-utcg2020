@@ -9,11 +9,20 @@ const style = {
 };
 
 class BrainScene extends Component {
+  state = {
+    brainData: [],
+  }
+
   componentDidMount() {
     this.sceneSetup();
     this.addCustomSceneObjects();
     this.startAnimationLoop();
     window.addEventListener("resize", this.handleWindowResize);
+    getNPY((res) => {
+      this.setState({
+        brainData: res,
+      });
+    });
   }
 
   componentWillUnmount() {
@@ -80,7 +89,7 @@ class BrainScene extends Component {
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
-  handleWindowResize() {
+  handleWindowResize = () => {
     const width = this.el.clientWidth;
     const height = this.el.clientHeight;
 
@@ -93,7 +102,6 @@ class BrainScene extends Component {
   };
 
   render() {
-    getNPY();
     return <div style={style} ref={(ref) => (this.el = ref)}/>;
   }
 
