@@ -22,7 +22,10 @@ class BrainScene extends Component {
       this.setState({
         brainData: res,
       });
+      // console.log(this.state.brainData.data);
     });
+    // console.log(mniCoordinates);
+    this.createSphere(0, 0, 0, 0xff00000);
   }
 
   componentWillUnmount() {
@@ -102,6 +105,17 @@ class BrainScene extends Component {
   };
 
   render() {
+    if (this.state.brainData) {
+      const mniData = this.state.brainData.data;
+      console.log(mniData);
+      if (mniData) {
+        let i;
+        for (i = 0; i < 1000; i += 3) {
+          this.createSphere(-mniData[i], mniData[i + 2], - mniData[i + 1], 0xff00000); // x,y,z = -x, z, y
+        }
+      }
+    }
+
     return <div style={style} ref={(ref) => (this.el = ref)}/>;
   }
 
@@ -115,6 +129,15 @@ class BrainScene extends Component {
     }, undefined, function(error) {
       console.error(error);
     });
+  }
+
+  createSphere(x, y, z, colorCode) {
+    const geometry = new THREE.SphereGeometry(1, 8, 6);
+    // const color = new THREE.Color(colorCode);
+    // const material = createShaderMaterial(color);
+    const sphere = new THREE.Mesh(geometry); // add material once shader is done
+    sphere.position.set(x, y, z);
+    this.scene.add(sphere);
   }
 }
 
