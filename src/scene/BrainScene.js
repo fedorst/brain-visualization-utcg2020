@@ -8,6 +8,8 @@ const style = {
   height: 750, // we can control scene size by setting container dimensions
 };
 
+const defaultPeriod = 2;
+
 class BrainScene extends Component {
   state = {
     brainData: [],
@@ -21,7 +23,12 @@ class BrainScene extends Component {
     getNPY((res) => {
       this.setState({
         brainData: res,
+        dots: [],
       });
+      this.dotsSetup();
+    });
+    this.setState({
+      clock: new THREE.Clock(),
     });
   }
 
@@ -81,7 +88,21 @@ class BrainScene extends Component {
   };
 
   startAnimationLoop = () => {
+    // const delta = this.state.clock && this.state.clock.getDelta();
+    const elapsed = this.state.clock && this.state.clock.getElapsedTime();
     this.renderer.render(this.scene, this.camera);
+
+    if (this.state.dots) {
+      const newDots = this.state.dots.map((dot) => {
+        const {sphere, timeOffset} = dot;
+        const newOpacity = Math.cos(Math.PI*((elapsed + timeOffset) % defaultPeriod)/(2*defaultPeriod));
+        if (sphere) {
+          sphere.material.opacity = newOpacity;
+        }
+        return ({sphere, timeOffset});
+      });
+      this.setState({dots: newDots});
+    }
 
     // The window.requestAnimationFrame() method tells the browser that you wish to perform
     // an animation and requests that the browser call a specified function
@@ -101,25 +122,42 @@ class BrainScene extends Component {
     this.camera.updateProjectionMatrix();
   };
 
-  render() {
-    /* if (this.state.brainData) {
-      const mniData = this.state.brainData.data;
-      console.log(mniData);
+  dotsSetup() {
+    if (this.state.brainData && this.scene) {
+      const mniData = [0, 0, 0,
+        100, 100, 100,
+        -100, -100, -100,
+        100, -100, -100,
+        -100, 100, 100,
+        100, -100, 100,
+        -100, -100, 100,
+        100, 100, -100,
+        -100, 100, -100,
+        0, 100, 0,
+        0, -100, 0,
+      ].map((i) => i/3.5);
+      // this.state.brainData.data;
       if (mniData) {
-        let i;
-        for (i = 0; i < 1000; i += 3) {
-          this.createSphere(-mniData[i], mniData[i + 2], - mniData[i + 1], 0xff0000, 1); // x,y,z = -x, z, y
+        for (let i = 0; i < Math.min(mniData.length-1, 999); i += 3) {
+          const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
+          const sphere = this.createSphere(x, y, z, 0xffffff, 1); // x,y,z = -x, z, y
+          this.scene.add(sphere);
+          const dots = this.state.dots;
+          dots && dots.push({sphere, timeOffset: Math.random()});
+          dots && this.setState({dots});
         }
       }
-    } */
+    }
+  }
 
+  render() {
     return <div style={style} ref={(ref) => (this.el = ref)}/>;
   }
 
   loadModel(loader, scene, model) {
     loader.load(model, function(gltf) {
       model = gltf.scene.children[0];
-      model.material.opacity = 0.7;
+      model.material.opacity = 0.3;
       model.material.transparent = true;
 
       scene.add(gltf.scene);
@@ -129,11 +167,11 @@ class BrainScene extends Component {
   }
 
   createSphere(x, y, z, colorCode, opacity) {
-    const geometry = new THREE.SphereGeometry(1, 8, 6);
+    const geometry = new THREE.SphereGeometry(2, 8, 6);
     const material = new THREE.MeshBasicMaterial({color: colorCode, transparent: true, opacity: opacity});
     const sphere = new THREE.Mesh(geometry, material);
     sphere.position.set(x, y, z);
-    this.scene.add(sphere);
+    return sphere;
   }
 }
 
