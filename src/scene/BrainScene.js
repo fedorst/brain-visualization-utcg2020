@@ -22,10 +22,7 @@ class BrainScene extends Component {
       this.setState({
         brainData: res,
       });
-      // console.log(this.state.brainData.data);
     });
-    // console.log(mniCoordinates);
-    this.createSphere(0, 0, 0, 0xff00000);
   }
 
   componentWillUnmount() {
@@ -105,16 +102,16 @@ class BrainScene extends Component {
   };
 
   render() {
-    if (this.state.brainData) {
+    /* if (this.state.brainData) {
       const mniData = this.state.brainData.data;
       console.log(mniData);
       if (mniData) {
         let i;
         for (i = 0; i < 1000; i += 3) {
-          this.createSphere(-mniData[i], mniData[i + 2], - mniData[i + 1], 0xff00000); // x,y,z = -x, z, y
+          this.createSphere(-mniData[i], mniData[i + 2], - mniData[i + 1], 0xff0000, 1); // x,y,z = -x, z, y
         }
       }
-    }
+    } */
 
     return <div style={style} ref={(ref) => (this.el = ref)}/>;
   }
@@ -131,11 +128,10 @@ class BrainScene extends Component {
     });
   }
 
-  createSphere(x, y, z, colorCode) {
+  createSphere(x, y, z, colorCode, opacity) {
     const geometry = new THREE.SphereGeometry(1, 8, 6);
-    // const color = new THREE.Color(colorCode);
-    // const material = createShaderMaterial(color);
-    const sphere = new THREE.Mesh(geometry); // add material once shader is done
+    const material = new THREE.MeshBasicMaterial({color: colorCode, transparent: true, opacity: opacity});
+    const sphere = new THREE.Mesh(geometry, material);
     sphere.position.set(x, y, z);
     this.scene.add(sphere);
   }
