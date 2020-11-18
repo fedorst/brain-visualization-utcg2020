@@ -103,7 +103,6 @@ class BrainScene extends Component {
       });
       this.setState({dots: newDots});
     }
-
     // The window.requestAnimationFrame() method tells the browser that you wish to perform
     // an animation and requests that the browser call a specified function
     // to update an animation before the next repaint
@@ -124,19 +123,8 @@ class BrainScene extends Component {
 
   dotsSetup() {
     if (this.state.brainData && this.scene) {
-      const mniData = [0, 0, 0,
-        100, 100, 100,
-        -100, -100, -100,
-        100, -100, -100,
-        -100, 100, 100,
-        100, -100, 100,
-        -100, -100, 100,
-        100, 100, -100,
-        -100, 100, -100,
-        0, 100, 0,
-        0, -100, 0,
-      ].map((i) => i/3.5);
-      // this.state.brainData.data;
+      const mniData = this.state.brainData.data;// .map((i) => i/3.5);
+      console.log(mniData);
       if (mniData) {
         for (let i = 0; i < Math.min(mniData.length-1, 999); i += 3) {
           const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
@@ -157,9 +145,11 @@ class BrainScene extends Component {
   loadModel(loader, scene, model) {
     loader.load(model, function(gltf) {
       model = gltf.scene.children[0];
-      model.material.opacity = 0.3;
+      model.material.opacity = 0.5;
       model.material.transparent = true;
-
+      model.position.set(0, 10, 0);
+      model.scale.set(1.3, 1.3, 1.3);
+      model.renderOrder = 1;
       scene.add(gltf.scene);
     }, undefined, function(error) {
       console.error(error);
