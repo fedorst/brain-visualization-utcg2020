@@ -148,7 +148,7 @@ class BrainScene extends Component {
       model.material.opacity = 0.5;
       model.material.transparent = true;
       model.position.set(0, 10, 0);
-      model.scale.set(1.3, 1.3, 1.3);
+      model.scale.set(1.1, 1.1, 1.1);
       model.renderOrder = 1;
       scene.add(gltf.scene);
     }, undefined, function(error) {
