@@ -126,7 +126,7 @@ class BrainScene extends Component {
       const mniData = this.state.brainData.data;// .map((i) => i/3.5);
       console.log(mniData);
       if (mniData) {
-        for (let i = 0; i < Math.min(mniData.length-1, 999); i += 3) {
+        for (let i = 0; i < Math.min(mniData.length-1, 999999); i += 3) {
           const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
           const sphere = this.createSphere(x, y, z, 0xffffff, 1); // x,y,z = -x, z, y
           this.scene.add(sphere);
@@ -147,8 +147,8 @@ class BrainScene extends Component {
       model = gltf.scene.children[0];
       model.material.opacity = 0.5;
       model.material.transparent = true;
-      model.position.set(0, 10, 0);
-      model.scale.set(1.1, 1.1, 1.1);
+      model.position.set(0, 15, 0);
+      model.scale.set(1.2, 1.1, 1);
       model.renderOrder = 1;
       scene.add(gltf.scene);
     }, undefined, function(error) {
@@ -157,7 +157,7 @@ class BrainScene extends Component {
   }
 
   createSphere(x, y, z, colorCode, opacity) {
-    const geometry = new THREE.SphereGeometry(2, 8, 6);
+    const geometry = new THREE.SphereGeometry(1, 8, 6);
     const material = new THREE.MeshBasicMaterial({color: colorCode, transparent: true, opacity: opacity});
     const sphere = new THREE.Mesh(geometry, material);
     sphere.position.set(x, y, z);
