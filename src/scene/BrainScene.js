@@ -128,11 +128,13 @@ class BrainScene extends Component {
       if (mniData) {
         for (let i = 0; i < Math.min(mniData.length-1, 999999); i += 3) {
           const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
-          const sphere = this.createSphere(x, y, z, 0xffffff, 1); // x,y,z = -x, z, y
-          this.scene.add(sphere);
-          const dots = this.state.dots;
-          dots && dots.push({sphere, timeOffset: Math.random()});
-          dots && this.setState({dots});
+          if (!(y > 64 && ((z > 45 && x < -30) || (x > 20 && z > 50)) || y < -50)) {
+            const sphere = this.createSphere(x, y, z, 0xffffff, 1);
+            this.scene.add(sphere);
+            const dots = this.state.dots;
+            dots && dots.push({sphere, timeOffset: Math.random()});
+            dots && this.setState({dots});
+          }
         }
       }
     }
