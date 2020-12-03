@@ -6,11 +6,11 @@ Prepare the data matrices for visualization:
     neural_responses_all_lfp.npy   [11293 x 48] (float)       category-timebin-average-raw voltage responses (baseline subtracted) [probe x time]
     categories.npy                 [8]              (str)     names of the categories [category]
     mni_coordinates.npy            [11293 x 3]      (float)   probe implantation sites in MNI space [probes x (x,y,z)]
+    predictive.npy                 [11293 x 8]      (int)     1 if a probe is predictive of a category, 0 otherwise [probes x categories]
+    neural_responses_ctg_frq.npy   [8 x 11293 x 48] (float)   image-timebit-average frequecy (high gamma) power responses log(signal/baseline) [category x probe x time]
+    neural_responses_all_frq.npy   [8 x 11293 x 48] (float)   category-timebit-average frequecy (high gamma) power responses log(signal/baseline) [category x probe x time]
 
     TODO:
-    predictive.npy                 [11293 x 8]      (int)     1 if a probe is predictive of a category, 0 otherwise [probes x categories]
-    neural_responses_ctg_frq.npy   [8 x 11293 x 48] (float)   image-timebit-average frequecy power responses log(signal/baseline) [category x probe x time]
-    neural_responses_all_frq.npy   [8 x 11293 x 48] (float)   category-timebit-average frequecy power responses log(signal/baseline) [category x probe x time]
     complexity_colors.npy          [11293 x 3]                probe colors according to representational comlexity (DCNN-based) [probe x rgb]
 
 Run with Python 2.7
@@ -30,8 +30,9 @@ from shutil import copyfile
 #
 ORGDATA = '../../Data/Raw'
 PRCDATA = '../../Data/Intracranial Decoding/Processed'
+EXTDATA = '../../../Spectral Signatures/Outcome/Single Probe Classification/FT'
 OUTDATA = '../../Outcome'
-FEATURESET = 'subtract_baseline_ft_4hz150_LFP_8c_artif_bipolar_BA_responsive'
+FEATURESET = 'normalized_ft_4hz150_LFP_8c_artif_bipolar_BA_responsive'
 
 '''
 H = house            10 [0]
@@ -45,7 +46,9 @@ F = target fruit     80 --- excluded from the analysis
 SCR = scrambled      90 [7]
 '''
 keep_groups = [10, 20, 30, 40, 50, 60, 70, 90]
-
+if len(keep_groups) != 8:
+    print 'ERROR: Predictiveness calculation only works with the full set of grops. Update the code if using a subset'
+    exit()
 
 
 #
@@ -73,16 +76,20 @@ n_stimuli = len(out_stim_groups)
 
 
 #
-#  Assemble the data
+#  Neural responses, MNI, Predictiveness
 #
 probefiles = natsort.natsorted(os.listdir('%s/%s' % (PRCDATA, FEATURESET)))
 n_probes = len(probefiles)
 n_timebins = 48
 out_neural_responses_ctg_lfp = np.zeros((8, n_probes, n_timebins), dtype=np.float16)
 out_neural_responses_all_lfp = np.zeros((n_probes, n_timebins), dtype=np.float16)
+out_neural_responses_ctg_frq = np.zeros((8, n_probes, n_timebins), dtype=np.float16)
+out_neural_responses_all_frq = np.zeros((n_probes, n_timebins), dtype=np.float16)
 mni_coordinates = np.zeros((n_probes, 3), dtype=np.float16)
 #brodmann_areas = np.zeros(n_probes, dtype=np.int)
 #subject_ids = []
+subjlist = sorted(os.listdir('%s/Predictions' % EXTDATA))
+predictive = np.zeros((n_probes, 8), dtype=np.int)
 
 for i, pf in enumerate(probefiles):
     if i % 10 == 0:
@@ -92,6 +99,7 @@ for i, pf in enumerate(probefiles):
     sname = pf.replace('.npy', '')
     (sname, pid) = sname.split('-')
     s = sio.loadmat('%s/LFP_8c_artif_bipolar_BA_responsive/%s.mat' % (PRCDATA, sname))
+    sid = subjlist.index('%s.npy' % sname)
 
     # LFP time binning
     lfp_bins = np.split(s['s']['data'][0][0][keep_stimuli_idx, :, :], 48, axis=2)
@@ -129,16 +137,39 @@ for i, pf in enumerate(probefiles):
     #subject_ids.append(sname)
 
     # ft data
-    #ft = np.load('%s/%s/%s' % (PRCDATA, FEATURESET, pf))
-    #out_ft = ft[keep_stimuli_idx, 66:, :]
-    #out_neural_responses[:, i, :] = np.mean(out_ft, axis=1)
+    ft = np.load('%s/%s/%s' % (PRCDATA, FEATURESET, pf))
+    out_neural_responses_all_frq[i, :] = np.mean(ft[keep_stimuli_idx, 66:, :], axis=(0, 1))  # all
+    out_neural_responses_ctg_frq[0, i, :] = np.mean(ft[stim_groups == 10, 66:, :], axis=(0, 1))  # house
+    out_neural_responses_ctg_frq[1, i, :] = np.mean(ft[stim_groups == 20, 66:, :], axis=(0, 1))  # face
+    out_neural_responses_ctg_frq[2, i, :] = np.mean(ft[stim_groups == 30, 66:, :], axis=(0, 1))  # animal
+    out_neural_responses_ctg_frq[3, i, :] = np.mean(ft[stim_groups == 40, 66:, :], axis=(0, 1))  # scene
+    out_neural_responses_ctg_frq[4, i, :] = np.mean(ft[stim_groups == 50, 66:, :], axis=(0, 1))  # tool
+    out_neural_responses_ctg_frq[5, i, :] = np.mean(ft[stim_groups == 60, 66:, :], axis=(0, 1))  # pseudoword
+    out_neural_responses_ctg_frq[6, i, :] = np.mean(ft[stim_groups == 70, 66:, :], axis=(0, 1))  # characters
+    out_neural_responses_ctg_frq[7, i, :] = np.mean(ft[stim_groups == 90, 66:, :], axis=(0, 1))  # noise
+
+
+    # Predictiveness
+    for cid in range(8):
+        predictive_probes = np.load('%s/Importances/FT_successful_probes_ctg%d.npy' % (EXTDATA, cid))
+        predictive[i, cid] = len([p for p in predictive_probes if p[0] == int(pid) and p[1] == sid])
+
 
 np.save('%s/neural_responses_ctg_lfp.npy' % OUTDATA, out_neural_responses_ctg_lfp)
 np.save('%s/neural_responses_all_lfp.npy' % OUTDATA, out_neural_responses_all_lfp)
+np.save('%s/neural_responses_ctg_frq.npy' % OUTDATA, out_neural_responses_ctg_frq)
+np.save('%s/neural_responses_all_frq.npy' % OUTDATA, out_neural_responses_all_frq)
 #np.save('%s/brodmann_areas.npy' % OUTDATA, brodmann_areas)
 np.save('%s/mni_coordinates.npy' % OUTDATA, mni_coordinates)
 #np.save('%s/subject_ids.npy' % OUTDATA, np.array(subject_ids))
+np.save('%s/predictive.npy' % OUTDATA, predictive)
+
+
+#
+#  Categories
+#
 np.save('%s/categories.npy' % OUTDATA, np.array(['house', 'face', 'animal', 'scene', 'tool', 'pseudoword', 'characters', 'noise']))
+
 
 
 #
