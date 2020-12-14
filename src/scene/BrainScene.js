@@ -8,7 +8,41 @@ const style = {
   height: 750, // we can control scene size by setting container dimensions
 };
 
-const defaultPeriod = 2;
+const defaultPeriod = 4;
+
+const sprite = new THREE.TextureLoader().load( "sprites/disc.png" );
+const vertexShader = `
+attribute float opacity;
+
+varying float fragOpacity;
+uniform float maxPointSize;
+
+void main() {
+  fragOpacity = opacity;
+
+  gl_PointSize = maxPointSize * opacity;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+const fragmentShader = `
+uniform vec3 color;
+uniform sampler2D tex;
+
+varying float fragOpacity;
+
+void main() {
+
+  vec4 col = texture2D(tex, gl_PointCoord.st).rgba;
+  float texOpacity = col.a;
+  if (texOpacity < 0.5) // bit of a hack for now
+    {
+        discard;
+    }
+ 
+  gl_FragColor = vec4(1, 1, 1, fragOpacity);
+
+}
+`;
 
 class BrainScene extends Component {
   state = {
@@ -29,6 +63,25 @@ class BrainScene extends Component {
     });
     this.setState({
       clock: new THREE.Clock(),
+      material: new THREE.ShaderMaterial({
+        uniforms: {
+          color: {value: new THREE.Color(1.0, 1.0, 1.0)},
+          tex: {
+            type: "t",
+            value: sprite,
+          },
+          maxPointSize: {
+            type: "f",
+            value: 15.0,
+          },
+        },
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+
+      }),
     });
   }
 
@@ -88,20 +141,19 @@ class BrainScene extends Component {
   };
 
   startAnimationLoop = () => {
-    // const delta = this.state.clock && this.state.clock.getDelta();
     const elapsed = this.state.clock && this.state.clock.getElapsedTime();
     this.renderer.render(this.scene, this.camera);
 
     if (this.state.dots) {
-      const newDots = this.state.dots.map((dot) => {
-        const {sphere, timeOffset} = dot;
-        const newOpacity = Math.cos(Math.PI*((elapsed + timeOffset) % defaultPeriod)/(2*defaultPeriod));
-        if (sphere) {
-          sphere.material.opacity = newOpacity;
+      const opacity = this.state.dots.geometry.attributes.opacity;
+      const offset = this.state.dots.initialOpacities;
+      for (let i = 0; i < opacity.array.length; i++) {
+        if (this.state.dots.hidden[i]) {
+          continue;
         }
-        return ({sphere, timeOffset});
-      });
-      this.setState({dots: newDots});
+        opacity.array[i] = Math.cos(2 * Math.PI * (elapsed/defaultPeriod + offset[i]));
+      }
+      opacity.needsUpdate = true;
     }
     // The window.requestAnimationFrame() method tells the browser that you wish to perform
     // an animation and requests that the browser call a specified function
@@ -123,20 +175,35 @@ class BrainScene extends Component {
 
   dotsSetup() {
     if (this.state.brainData && this.scene) {
-      const mniData = this.state.brainData.data;// .map((i) => i/3.5);
-      console.log(mniData);
-      if (mniData) {
-        for (let i = 0; i < Math.min(mniData.length-1, 999999); i += 3) {
-          const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
-          if (!(y > 64 && ((z > 45 && x < -30) || (x > 20 && z > 50)) || y < -50)) {
-            const sphere = this.createSphere(x, y, z, 0xffffff, 1);
-            this.scene.add(sphere);
-            const dots = this.state.dots;
-            dots && dots.push({sphere, timeOffset: Math.random()});
-            dots && this.setState({dots});
-          }
+      const mniData = this.state.brainData.data;
+      const pointCount = mniData.length / 3;
+      const geometry = new THREE.BufferGeometry();
+
+      const position = new Float32Array(pointCount * 3);
+      const opacity = new Float32Array(pointCount);
+      const hidden = new Array(pointCount);
+      for (let i = 0; i < pointCount * 3; i += 3) {
+        const pointCoord = i / 3;
+        const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
+        position[i] = x;
+        position[i + 1] = y;
+        position[i + 2] = z;
+        if (y > 64 && ((z > 45 && x < -30) || (x > 20 && z > 50)) || y < -50) {
+          hidden[pointCoord] = true;
+          opacity[pointCoord] = 0.0;
+        } else {
+          hidden[pointCoord] = false;
+          opacity[pointCoord] = Math.random();
         }
+        hidden[i] = !(y > 64 && ((z > 45 && x < -30) || (x > 20 && z > 50)) || y < -50);
       }
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+      geometry.setAttribute("opacity", new THREE.BufferAttribute(opacity, 1));
+      const particles = new THREE.Points( geometry, this.state.material );
+      particles.initialOpacities = [...opacity];
+      particles.hidden = hidden;
+      this.scene.add( particles );
+      this.setState({dots: particles});
     }
   }
 
@@ -157,18 +224,6 @@ class BrainScene extends Component {
       console.error(error);
     });
   }
-
-  createSphere(x, y, z, colorCode, opacity) {
-    const geometry = new THREE.SphereGeometry(1, 8, 6);
-    const material = new THREE.MeshBasicMaterial({color: colorCode, transparent: true, opacity: opacity});
-    const sphere = new THREE.Mesh(geometry, material);
-    sphere.position.set(x, y, z);
-    return sphere;
-  }
 }
 
-/*
-const rootElement = document.getElementById("root");
-ReactDOM.render(<Container />, rootElement);
-*/
 export {BrainScene};
