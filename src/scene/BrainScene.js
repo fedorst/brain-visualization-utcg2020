@@ -125,8 +125,8 @@ class BrainScene extends Component {
     const loader = new GLTFLoader();
     loader.setPath("/models/");
 
-    this.loadModel(loader, scene, "lh.glb");
-    this.loadModel(loader, scene, "rh.glb");
+    this.loadModel(loader, scene, "lh_low.glb");
+    this.loadModel(loader, scene, "rh_low.glb");
 
     const lights = [];
     lights[0] = new THREE.PointLight(0xffffff, 1, 0);
@@ -227,7 +227,7 @@ class BrainScene extends Component {
       // making the mesh Buffered geometry again for effective rendering
       model.geometry = new THREE.BufferGeometry().fromGeometry(tempGeo);
       model.material = brainMaterial;
-      model.material.opacity = 0.5;
+      model.material.opacity = 0.7;
       model.material.transparent = true;
       model.renderOrder = 1;
       // positioning
