@@ -44,6 +44,8 @@ void main() {
 }
 `;
 
+const brainMaterial = new THREE.MeshLambertMaterial();
+
 class BrainScene extends Component {
   state = {
     brainData: [],
@@ -123,8 +125,8 @@ class BrainScene extends Component {
     const loader = new GLTFLoader();
     loader.setPath("/models/");
 
-    this.loadModel(loader, scene, "lh.glb");
-    this.loadModel(loader, scene, "rh.glb");
+    this.loadModel(loader, scene, "lh_low.glb");
+    this.loadModel(loader, scene, "rh_low.glb");
 
     const lights = [];
     lights[0] = new THREE.PointLight(0xffffff, 1, 0);
@@ -141,6 +143,7 @@ class BrainScene extends Component {
   };
 
   startAnimationLoop = () => {
+    // const delta = this.state.clock && this.state.clock.getDelta();
     const elapsed = this.state.clock && this.state.clock.getElapsedTime();
     this.renderer.render(this.scene, this.camera);
 
@@ -214,11 +217,23 @@ class BrainScene extends Component {
   loadModel(loader, scene, model) {
     loader.load(model, function(gltf) {
       model = gltf.scene.children[0];
-      model.material.opacity = 0.5;
+
+      // temporary mesh for smoothing
+      const tempGeo = new THREE.Geometry().fromBufferGeometry(model.geometry);
+      tempGeo.mergeVertices();
+      tempGeo.computeVertexNormals();
+      tempGeo.computeFaceNormals();
+
+      // making the mesh Buffered geometry again for effective rendering
+      model.geometry = new THREE.BufferGeometry().fromGeometry(tempGeo);
+      model.material = brainMaterial;
+      model.material.opacity = 0.7;
       model.material.transparent = true;
+      model.renderOrder = 1;
+      // positioning
       model.position.set(0, 15, 0);
       model.scale.set(1.2, 1.1, 1);
-      model.renderOrder = 1;
+
       scene.add(gltf.scene);
     }, undefined, function(error) {
       console.error(error);
