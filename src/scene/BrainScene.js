@@ -147,7 +147,7 @@ class BrainScene extends Component {
     const elapsed = this.state.clock && this.state.clock.getElapsedTime();
     this.renderer.render(this.scene, this.camera);
 
-    if (this.state.dots) {
+    if (this.state.dots && this.state.mesh) {
       const opacity = this.state.dots.geometry.attributes.opacity;
       const offset = this.state.dots.initialOpacities;
       for (let i = 0; i < opacity.array.length; i++) {
@@ -177,7 +177,7 @@ class BrainScene extends Component {
   };
 
   dotsSetup() {
-    if (this.state.brainData && this.scene) {
+    if (this.state.brainData && this.scene && this.state.mesh) {
       const mniData = this.state.brainData.data;
       const pointCount = mniData.length / 3;
       const geometry = new THREE.BufferGeometry();
