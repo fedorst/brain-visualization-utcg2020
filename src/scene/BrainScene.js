@@ -191,6 +191,13 @@ class BrainScene extends Component {
         position[i] = x;
         position[i + 1] = y;
         position[i + 2] = z;
+        const point = new THREE.Vector3(x, y, z);
+        const raycaster = new THREE.Raycaster();
+        raycaster.set(point, new THREE.Vector3(200, 200, 200));
+        const intersects = raycaster.intersectObject(this.state.mesh);
+        if (intersects.length % 2 === 1) { // Points is in objet
+          console.log("Point is in object");
+        }
         if (y > 64 && ((z > 45 && x < -30) || (x > 20 && z > 50)) || y < -50) {
           hidden[pointCoord] = true;
           opacity[pointCoord] = 0.0;
@@ -235,6 +242,7 @@ class BrainScene extends Component {
       model.scale.set(1.2, 1.1, 1);
 
       scene.add(gltf.scene);
+      this.setState({mesh: new THREE.Mesh(model.geometry, model.material)});
     }, undefined, function(error) {
       console.error(error);
     });
