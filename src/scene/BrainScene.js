@@ -240,9 +240,9 @@ class BrainScene extends Component {
         position[i + 2] = z;
         const point = new THREE.Vector3(x, y, z);
         const raycaster = new THREE.Raycaster();
-        raycaster.set(point, new THREE.Vector3(200, 200, 200));
+        raycaster.set(point, new THREE.Vector3(0, -5000, 0));
         const intersects = raycaster.intersectObject(mesh);
-        if (intersects.length % 2 === 1) { // Points is in object
+        if (intersects.length > 0) { // Points is in object
           color[i] = 1.0;
           color[i + 1] = 1.0;
           color[i + 2] = 1.0;
