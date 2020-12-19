@@ -13,21 +13,25 @@ const defaultPeriod = 4;
 const sprite = new THREE.TextureLoader().load( "sprites/disc.png" );
 const vertexShader = `
 attribute float opacity;
+attribute vec3 color;
 
 varying float fragOpacity;
 uniform float maxPointSize;
+varying vec3 fragColor;
 
 void main() {
   fragOpacity = opacity;
+  fragColor = color;
 
   gl_PointSize = maxPointSize * opacity;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
 const fragmentShader = `
-uniform vec3 color;
+// uniform vec3 color;
 uniform sampler2D tex;
 
+varying vec3 fragColor;
 varying float fragOpacity;
 
 void main() {
@@ -39,7 +43,7 @@ void main() {
         discard;
     }
  
-  gl_FragColor = vec4(1, 1, 1, fragOpacity);
+  gl_FragColor = vec4(fragColor.rgb, fragOpacity);
 
 }
 `;
@@ -51,23 +55,24 @@ class BrainScene extends Component {
     brainData: [],
   }
 
-  componentDidMount() {
+  async componentDidMount() {
+    this.loadModel = this.loadModel.bind(this);
     this.sceneSetup();
-    this.addCustomSceneObjects();
+    await this.addCustomSceneObjects();
     this.startAnimationLoop();
     window.addEventListener("resize", this.handleWindowResize);
     getNPY((res) => {
       this.setState({
         brainData: res,
-        dots: [],
       });
       this.dotsSetup();
     });
+
     this.setState({
       clock: new THREE.Clock(),
       material: new THREE.ShaderMaterial({
         uniforms: {
-          color: {value: new THREE.Color(1.0, 1.0, 1.0)},
+          // color: {value: new THREE.Color(1.0, 1.0, 1.0)},
           tex: {
             type: "t",
             value: sprite,
@@ -82,7 +87,6 @@ class BrainScene extends Component {
         transparent: true,
         blending: THREE.AdditiveBlending,
         sizeAttenuation: true,
-
       }),
     });
   }
@@ -119,14 +123,53 @@ class BrainScene extends Component {
   // Here should come custom code.
   // Code below is taken from Three.js BoxGeometry example
   // https://threejs.org/docs/#api/en/geometries/BoxGeometry
-  addCustomSceneObjects() {
+  async addCustomSceneObjects() {
+    const getMeshFromGltf = (gltf) => {
+      {
+        const model = gltf.scene.children[0];
+
+        // temporary mesh for smoothing
+        const tempGeo = new THREE.Geometry().fromBufferGeometry(model.geometry);
+        tempGeo.mergeVertices();
+        tempGeo.computeVertexNormals();
+        tempGeo.computeFaceNormals();
+
+        model.geometry = tempGeo;
+        model.material = brainMaterial;
+
+        console.log("setting state for loading model");
+        return new THREE.Mesh(model.geometry, model.material);
+      }
+    };
+
     const scene = this.scene;
 
+    // load brain models
     const loader = new GLTFLoader();
     loader.setPath("/models/");
 
-    this.loadModel(loader, scene, "lh_low.glb");
-    this.loadModel(loader, scene, "rh_low.glb");
+    const lh = await this.loadModel(loader, scene, "lh_low.glb");
+    const meshLh = getMeshFromGltf(lh);
+    const rh = await this.loadModel(loader, scene, "rh_low.glb");
+    const meshRh = getMeshFromGltf(rh);
+    const combinedGeometry = new THREE.Geometry();
+    meshLh.updateMatrix();
+    combinedGeometry.merge(meshLh.geometry, meshLh.matrix, 0);
+
+    meshRh.updateMatrix();
+    combinedGeometry.merge(meshRh.geometry, meshRh.matrix, 1);
+
+    const combinedMaterial = meshRh.material;
+    combinedMaterial.opacity = 0.7;
+    combinedMaterial.transparent = true;
+    const combinedMesh = new THREE.Mesh(combinedGeometry, combinedMaterial);
+    combinedMesh.renderOrder = 1;
+    // positioning
+    combinedMesh.position.set(0, 15, 0);
+    combinedMesh.scale.set(1.2, 1.1, 1);
+
+    scene.add(combinedMesh);
+    this.setState({mesh: combinedMesh});
 
     const lights = [];
     lights[0] = new THREE.PointLight(0xffffff, 1, 0);
@@ -178,6 +221,9 @@ class BrainScene extends Component {
 
   dotsSetup() {
     if (this.state.brainData && this.scene && this.state.mesh) {
+      // const [colorWhite, colorRed] = [new THREE.Color(1.0, 1.0, 1.0), new THREE.Color(1.0, 0.2, 0.2)];
+      const mesh = this.state.mesh;
+      mesh.material.side = THREE.BackSide;
       const mniData = this.state.brainData.data;
       const pointCount = mniData.length / 3;
       const geometry = new THREE.BufferGeometry();
@@ -185,6 +231,7 @@ class BrainScene extends Component {
       const position = new Float32Array(pointCount * 3);
       const opacity = new Float32Array(pointCount);
       const hidden = new Array(pointCount);
+      const color = new Float32Array(pointCount * 3);
       for (let i = 0; i < pointCount * 3; i += 3) {
         const pointCoord = i / 3;
         const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
@@ -194,10 +241,24 @@ class BrainScene extends Component {
         const point = new THREE.Vector3(x, y, z);
         const raycaster = new THREE.Raycaster();
         raycaster.set(point, new THREE.Vector3(200, 200, 200));
-        const intersects = raycaster.intersectObject(this.state.mesh);
-        if (intersects.length % 2 === 1) { // Points is in objet
-          console.log("Point is in object");
+        const intersects = raycaster.intersectObject(mesh);
+        if (intersects.length % 2 === 1) { // Points is in object
+          color[i] = 1.0;
+          color[i + 1] = 1.0;
+          color[i + 2] = 1.0;
+
+          // material = this.state.material;
+          // console.log("Point is in object");
+        } else {
+          color[i] = 1.0;
+          color[i + 1] = 0.2;
+          color[i + 2] = 0.2;
+          // material = this.state.excludedMaterial;
+          // console.log("Point is NOT in object");
         }
+        hidden[pointCoord] = false;
+        opacity[pointCoord] = Math.random();
+        /*
         if (y > 64 && ((z > 45 && x < -30) || (x > 20 && z > 50)) || y < -50) {
           hidden[pointCoord] = true;
           opacity[pointCoord] = 0.0;
@@ -206,14 +267,20 @@ class BrainScene extends Component {
           opacity[pointCoord] = Math.random();
         }
         hidden[i] = !(y > 64 && ((z > 45 && x < -30) || (x > 20 && z > 50)) || y < -50);
+         */
       }
+      // geometry.setAttribute("color", new THREE.Color(1.0, 1.0, 1.0));
+      // color: {value: new THREE.Color(1.0, 1.0, 1.0)},
       geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
       geometry.setAttribute("opacity", new THREE.BufferAttribute(opacity, 1));
+      geometry.setAttribute("color", new THREE.Float32BufferAttribute(color, 3));
+
       const particles = new THREE.Points( geometry, this.state.material );
       particles.initialOpacities = [...opacity];
       particles.hidden = hidden;
       this.scene.add( particles );
       this.setState({dots: particles});
+      mesh.material.side = THREE.FrontSide;
     }
   }
 
@@ -222,30 +289,9 @@ class BrainScene extends Component {
   }
 
   loadModel(loader, scene, model) {
-    loader.load(model, function(gltf) {
-      model = gltf.scene.children[0];
-
-      // temporary mesh for smoothing
-      const tempGeo = new THREE.Geometry().fromBufferGeometry(model.geometry);
-      tempGeo.mergeVertices();
-      tempGeo.computeVertexNormals();
-      tempGeo.computeFaceNormals();
-
-      // making the mesh Buffered geometry again for effective rendering
-      model.geometry = new THREE.BufferGeometry().fromGeometry(tempGeo);
-      model.material = brainMaterial;
-      model.material.opacity = 0.7;
-      model.material.transparent = true;
-      model.renderOrder = 1;
-      // positioning
-      model.position.set(0, 15, 0);
-      model.scale.set(1.2, 1.1, 1);
-
-      scene.add(gltf.scene);
-      this.setState({mesh: new THREE.Mesh(model.geometry, model.material)});
-    }, undefined, function(error) {
-      console.error(error);
-    });
+    return new Promise(((resolve, reject) => {
+      loader.load(model, (gltf) => resolve(gltf), null, reject);
+    }));
   }
 }
 

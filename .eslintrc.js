@@ -18,6 +18,7 @@ module.exports = {
     "react",
   ],
   "rules": {
+    "react/prop-types": 0,
     "quotes": ["error", "double"],
     "max-len": ["error", 120],
     "require-jsdoc": 0,
