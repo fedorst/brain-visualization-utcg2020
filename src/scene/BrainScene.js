@@ -221,7 +221,6 @@ class BrainScene extends Component {
 
   dotsSetup() {
     if (this.state.brainData && this.scene && this.state.mesh) {
-      // const [colorWhite, colorRed] = [new THREE.Color(1.0, 1.0, 1.0), new THREE.Color(1.0, 0.2, 0.2)];
       const mesh = this.state.mesh;
       mesh.material.side = THREE.BackSide;
       const mniData = this.state.brainData.data;
@@ -246,14 +245,11 @@ class BrainScene extends Component {
           color[i] = 1.0;
           color[i + 1] = 1.0;
           color[i + 2] = 1.0;
-
-          // material = this.state.material;
           // console.log("Point is in object");
         } else {
           color[i] = 1.0;
           color[i + 1] = 0.2;
           color[i + 2] = 0.2;
-          // material = this.state.excludedMaterial;
           // console.log("Point is NOT in object");
         }
         hidden[pointCoord] = false;
