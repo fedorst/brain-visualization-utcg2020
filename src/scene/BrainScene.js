@@ -3,12 +3,32 @@ import * as THREE from "three";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
 import getNPY from "../helpers/getNPY";
+import {Container, Dropdown, Icon} from "semantic-ui-react";
 
 const style = {
   height: 750, // we can control scene size by setting container dimensions
 };
 
 const defaultPeriod = 4;
+const colors = [
+  "#25219E",
+  "#23479B",
+  "#2C5BA7",
+  "#00B7EC",
+  "#48C69B",
+  "#A7D316",
+  "#FFD100",
+  "#FF5F17",
+  "#E61A26",
+];
+
+const contentElement = (color, text) => {
+  return <div ><Icon style={{color: color}} name={"circle"}/>{text}</div>;
+};
+
+const dropdownOptions = colors.map((c, i) => {
+  return {key: i.toString(), text: i.toString(), value: i.toString(), content: contentElement(c, i)};
+});
 
 const sprite = new THREE.TextureLoader().load( "sprites/disc.png" );
 const vertexShader = `
@@ -281,7 +301,7 @@ class BrainScene extends Component {
 
       for (let i = 0; i < pointCount * 3; i += 3) {
         const pointCoord = i / 3;
-        if (hiddenIndexes.includes(pointCoord) == false) {
+        if (!hiddenIndexes.includes(pointCoord)) {
           const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
           position[i] = x;
           position[i + 1] = y;
@@ -332,7 +352,18 @@ class BrainScene extends Component {
   }
 
   render() {
-    return <div style={style} ref={(ref) => (this.el = ref)}/>;
+    return <Container>
+      <Dropdown
+        multiple
+        text={"Select image category"}
+        selection
+        fluid
+        button
+        options={dropdownOptions}
+      />
+      <div style={style} ref={(ref) => (this.el = ref)}/>
+    </Container>;
+    // return ;
   }
 
   loadModel(loader, scene, model) {
