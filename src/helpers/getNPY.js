@@ -1,6 +1,8 @@
 import Npyjs from "npyjs"; // "./npyjs";
-import npyFile from "./mni_coordinates.npy";
-export default function(callback) {
+export default function(file) {
   const n = new Npyjs();
-  n.load(npyFile, callback);
+  return new Promise(((resolve, reject) => {
+    n.load(file, (res) => resolve(res), null, reject);
+  }));
+  // n.load(file, ());
 }
