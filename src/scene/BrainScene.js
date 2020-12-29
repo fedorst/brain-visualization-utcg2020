@@ -3,7 +3,7 @@ import * as THREE from "three";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
 import getNPY from "../helpers/getNPY";
-import {Button, Image, Grid, GridColumn, Checkbox, Header} from "semantic-ui-react";
+import {Button, Image, Grid, GridColumn, Checkbox, Header, Segment} from "semantic-ui-react";
 import {Slider} from "react-semantic-ui-range";
 import mniCoords from "../helpers/mni_coordinates.npy";
 import dcnnLayerFile from "../helpers/dcnn_layer.npy";
@@ -104,7 +104,7 @@ class BrainScene extends Component {
         highGammaFrq: false,
         moment: 0,
       },
-      brainOpacity: 0.7,
+      brainOpacity: 0.4,
       initialized: false,
       clock: new THREE.Clock(),
       material: new THREE.ShaderMaterial({
@@ -229,7 +229,7 @@ class BrainScene extends Component {
     combinedGeometry.merge(meshRh.geometry, meshRh.matrix, 1);
 
     const combinedMaterial = meshRh.material;
-    combinedMaterial.opacity = 0.7;
+    combinedMaterial.opacity = this.state.brainOpacity;
     combinedMaterial.transparent = true;
     const combinedMesh = new THREE.Mesh(combinedGeometry, combinedMaterial);
     combinedMesh.renderOrder = 1;
@@ -319,7 +319,6 @@ class BrainScene extends Component {
           hidden.array[pointCoord] = 0;
         }
 
-
         // categories && various datas
         if (subSelectImgChecked && subSelectImage !== "" && (colorCoded === false || dcnn !== -1)) {
           if (this.state.displaySettings.highGammaFrq) {
@@ -371,7 +370,7 @@ class BrainScene extends Component {
       const size = new Float32Array(pointCount);
       const hidden = new Array(pointCount);
       const color = new Float32Array(pointCount * 3);
-      console.log(mniData);
+
       for (let i = 0; i < pointCount * 3; i += 3) {
         const pointCoord = i / 3;
         if (!hiddenIndexes.includes(pointCoord)) {
@@ -474,82 +473,107 @@ class BrainScene extends Component {
 
     return <Grid columns={2}>
       {displaySettings &&
-      <GridColumn width={4}>
-        <Checkbox
-          toggle
-          label='Sub-select stimulus image category'
-          onChange={this.subSelectImg}
-          checked={this.state.displaySettings.subSelectImgChecked}
-        />
-        {
-          this.state.displaySettings.subSelectImgChecked &&
-          <Grid columns={4} style={{margin: "0.5rem"}}>
-            {categoryDropdownOptions.map(({key, text, value}) =>
-              <GridColumn
-                key={key}
-                width={4}
-                style={{
-                  padding: "0rem",
-                }}>
-                <Button
-                  style={{padding: "0rem"}}
-                  fluid
-                  positive={this.state.displaySettings.subSelectImage === value}
-                  onClick={() => this.toggleSubSelectImg(value)}>
-                  <Image
-                    src='https://react.semantic-ui.com/images/wireframe/paragraph.png'/>
-                  {/* <Label attached="bottom">{text}</Label> */}
-                  <p>{text}</p>
-                </Button>
-              </GridColumn>)}
-          </Grid>
-        }
-        {
-          this.state.displaySettings.subSelectImgChecked &&
+      <GridColumn width={4} style={{paddingLeft: "2rem"}}>
+        <Segment vertical>
           <Checkbox
             toggle
-            label="Show only predictive probes"
-            onChange={this.togglePredictiveProbes}
-            checked={this.state.displaySettings.onlyPredictiveProbes}
+            label='Sub-select stimulus image category'
+            onChange={this.subSelectImg}
+            checked={this.state.displaySettings.subSelectImgChecked}
           />
-        }
-        <Checkbox
-          toggle
-          label="Baseline-normalized neural responses in high gamma"
-          onChange={this.toggleHighGammaFrq}
-          checked={this.state.displaySettings.highGammaFrq}
-        />
-        <Checkbox
-          toggle
-          label="Color-code the probes to reflect visual complexity of their representations based on DCNN mapping"
-          onChange={this.toggleColorCode}
-          checked={this.state.displaySettings.colorCoded}
-        />
-        <Header>Time: {momentToMs(this.state.displaySettings.moment)}</Header>
-        <Slider
-          value={this.state.displaySettings.moment}
-          discrete
-          color="red"
-          settings={{
-            start: 0,
-            min: 0,
-            max: 47,
-            step: 1,
-            onChange: this.updateMoment,
-          }}
-        />
-        <Header>Brain opacity: {this.state.brainOpacity}</Header>
-        <Slider
-          value={this.state.brainOpacity}
-          color="red"
-          settings={{
-            start: 0.7,
-            min: 0,
-            max: 1,
-            step: 0.025,
-            onChange: this.updateBrainOpacity,
-          }}
-        />
+          {
+            this.state.displaySettings.subSelectImgChecked &&
+            <Grid columns={4} style={{margin: "0.5rem"}}>
+              {categoryDropdownOptions.map(({key, text, value}) =>
+                <GridColumn
+                  key={key}
+                  width={4}
+                  style={{
+                    padding: "0rem",
+                  }}>
+                  <Button
+                    style={{padding: "0rem"}}
+                    fluid
+                    positive={this.state.displaySettings.subSelectImage === value}
+                    onClick={() => this.toggleSubSelectImg(value)}>
+                    <Image
+                      src='https://react.semantic-ui.com/images/wireframe/paragraph.png'/>
+                    <p>{text}</p>
+                  </Button>
+                </GridColumn>)}
+            </Grid>
+          }
+          {
+            this.state.displaySettings.subSelectImgChecked &&
+            <Checkbox
+              toggle
+              label="Show only predictive probes"
+              onChange={this.togglePredictiveProbes}
+              checked={this.state.displaySettings.onlyPredictiveProbes}
+            />
+          }
+        </Segment>
+        <Segment vertical>
+          <Checkbox
+            radio
+            label="Baseline-normalized LFP responses"
+            style={{paddingLeft: "1rem", width: "100%"}}
+            onChange={this.toggleHighGammaFrq}
+            checked={!this.state.displaySettings.highGammaFrq}
+          />
+          <Checkbox
+            radio
+            label="Baseline-normalized neural responses in high gamma"
+            style={{paddingLeft: "1rem", width: "100%"}}
+            onChange={this.toggleHighGammaFrq}
+            checked={this.state.displaySettings.highGammaFrq}
+          />
+        </Segment>
+        <Segment vertical>
+          <Checkbox
+            radio
+            label="Color-code in accordance with the change in activity"
+            style={{paddingLeft: "1rem", width: "100%"}}
+            onChange={this.toggleColorCode}
+            checked={!this.state.displaySettings.colorCoded}
+          />
+          <Checkbox
+            radio
+            label="Color-code the probes to reflect visual complexity of their representations based on DCNN mapping"
+            style={{paddingLeft: "1rem", width: "100%"}}
+            onChange={this.toggleColorCode}
+            checked={this.state.displaySettings.colorCoded}
+          />
+        </Segment>
+        <Segment vertical>
+          <Header>Time: {momentToMs(this.state.displaySettings.moment)}</Header>
+          <Slider
+            value={this.state.displaySettings.moment}
+            discrete
+            color="red"
+            settings={{
+              start: 0,
+              min: 0,
+              max: 47,
+              step: 1,
+              onChange: this.updateMoment,
+            }}
+          />
+        </Segment>
+        <Segment vertical>
+          <Header>Brain opacity: {this.state.brainOpacity}</Header>
+          <Slider
+            value={this.state.brainOpacity}
+            color="red"
+            settings={{
+              start: 0.4,
+              min: 0,
+              max: 1,
+              step: 0.025,
+              onChange: this.updateBrainOpacity,
+            }}
+          />
+        </Segment>
       </GridColumn>}
       <GridColumn width={12}>
         <div style={style} ref={(ref) => (this.el = ref)}/>
