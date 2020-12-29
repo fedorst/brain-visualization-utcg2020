@@ -104,6 +104,7 @@ class BrainScene extends Component {
         highGammaFrq: false,
         moment: 0,
       },
+      brainOpacity: 0.7,
       initialized: false,
       clock: new THREE.Clock(),
       material: new THREE.ShaderMaterial({
@@ -460,10 +461,16 @@ class BrainScene extends Component {
   updateMoment = (moment) => {
     this.setState({displaySettings: {...this.state.displaySettings, moment}});
   }
+  updateBrainOpacity = (brainOpacity) => {
+    this.setState({brainOpacity});
+    if (this.state.mesh) {
+      const material = this.state.mesh.material;
+      material.opacity = brainOpacity;
+    }
+  }
 
   render() {
     const displaySettings = this.state.displaySettings;
-    // console.log(displaySettings);
 
     return <Grid columns={2}>
       {displaySettings &&
@@ -529,6 +536,18 @@ class BrainScene extends Component {
             max: 47,
             step: 1,
             onChange: this.updateMoment,
+          }}
+        />
+        <Header>Brain opacity: {this.state.brainOpacity}</Header>
+        <Slider
+          value={this.state.brainOpacity}
+          color="red"
+          settings={{
+            start: 0.7,
+            min: 0,
+            max: 1,
+            step: 0.025,
+            onChange: this.updateBrainOpacity,
           }}
         />
       </GridColumn>}
