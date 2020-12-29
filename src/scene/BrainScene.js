@@ -52,18 +52,19 @@ const categoryDropdownOptions = categories.map((cat, i) => {
 
 const sprite = new THREE.TextureLoader().load( "sprites/disc.png" );
 const vertexShader = `
-attribute float opacity;
+attribute float size;
 attribute vec3 color;
+attribute float hidden;
 
-varying float fragOpacity;
 uniform float maxPointSize;
 varying vec3 fragColor;
+varying float fragHidden;
 
 void main() {
-  fragOpacity = opacity;
   fragColor = color;
+  fragHidden = hidden;
 
-  gl_PointSize = maxPointSize * opacity;
+  gl_PointSize = maxPointSize * size;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
@@ -71,20 +72,18 @@ const fragmentShader = `
 // uniform vec3 color;
 uniform sampler2D tex;
 
+varying float fragHidden;
 varying vec3 fragColor;
-varying float fragOpacity;
 
 void main() {
 
-  vec4 col = texture2D(tex, gl_PointCoord.st).rgba;
-  float texOpacity = col.a;
-  if (texOpacity < 0.5) // bit of a hack for now
+  float texOpacity = texture2D(tex, gl_PointCoord.st).a;
+  if (texOpacity < 0.5 || fragHidden == 1.0) // bit of a hack for now
     {
         discard;
     }
  
-  gl_FragColor = vec4(fragColor.rgb, fragOpacity);
-
+  gl_FragColor = vec4(fragColor.rgb, texOpacity);
 }
 `;
 
@@ -281,7 +280,9 @@ class BrainScene extends Component {
       const mniData = this.state.brainData;
       const pointCount = mniData.length / 3;
       const color = this.state.dots.geometry.attributes.color;
-      const opacity = this.state.dots.geometry.attributes.opacity;
+      const size = this.state.dots.geometry.attributes.size;
+      const hidden = this.state.dots.geometry.attributes.hidden;
+
       const {
         colorCoded,
         subSelectImage,
@@ -295,9 +296,28 @@ class BrainScene extends Component {
 
         let value;
         let prevValue;
-        let hidden;
 
+        // hidden check - only if we're colour coding and the electrode does not correspond to any dcnn level
+        // or if the index is supposed to be hidden
         const dcnn = Number(this.state.dcnnLayer[pointCoord]);
+        // filter out probes with hidden indexes
+        if (hiddenIndexes.includes(pointCoord)) {
+          continue;
+          // filter out non-colored probes if we're using dcnn colour codes
+        } else if (colorCoded === true && dcnn === -1) {
+          hidden.array[pointCoord] = 1;
+          continue;
+          // filter out non-predictive probes
+        } else if (onlyPredictiveProbes &&
+            subSelectImgChecked &&
+            subSelectImage !== "" &&
+            Number(this.state.predictive[pointCoord][subSelectImage]) === 0) {
+          hidden.array[pointCoord] = 1;
+          continue;
+        } else {
+          hidden.array[pointCoord] = 0;
+        }
+
 
         // categories && various datas
         if (subSelectImgChecked && subSelectImage !== "" && (colorCoded === false || dcnn !== -1)) {
@@ -319,46 +339,35 @@ class BrainScene extends Component {
           }
         }
 
-        if (colorCoded === true) {
-          if (dcnn !== -1) {
-            color.array[i] = dcnnColorsRGB[dcnn][0];
-            color.array[i + 1] = dcnnColorsRGB[dcnn][1];
-            color.array[i + 2] = dcnnColorsRGB[dcnn][2];
-          } else {
-            hidden = true;
-            opacity.array[pointCoord] = 0.0;
-          }
+        // handle colours
+        if (colorCoded === true && dcnn !== -1) {
+          color.array[i] = dcnnColorsRGB[dcnn][0];
+          color.array[i + 1] = dcnnColorsRGB[dcnn][1];
+          color.array[i + 2] = dcnnColorsRGB[dcnn][2];
         } else {
-          opacity.array[pointCoord] = 1.0;
           const gradientColor = redWhiteBlueGradient(value - prevValue);
           color.array[i] = gradientColor[0];
           color.array[i + 1] = gradientColor[1];
           color.array[i + 2] = gradientColor[2];
         }
 
-        if (!hidden) opacity.array[pointCoord] = value;
-
-        if (onlyPredictiveProbes &&
-            subSelectImgChecked &&
-            subSelectImage !== "" &&
-            Number(this.state.predictive[pointCoord][subSelectImage]) === 0) {
-          opacity.array[pointCoord] = 0.0;
-        }
+        size.array[pointCoord] = value;
       }
 
       color.needsUpdate = true;
-      opacity.needsUpdate = true;
+      hidden.needsUpdate = true;
+      size.needsUpdate = true;
     }
   }
 
   setupDots() {
-    if (this.scene) {
+    if (this.scene && this.state.brainData) {
       const mniData = this.state.brainData;
       const pointCount = mniData.length / 3;
       const geometry = new THREE.BufferGeometry();
 
       const position = new Float32Array(pointCount * 3);
-      const opacity = new Float32Array(pointCount);
+      const size = new Float32Array(pointCount);
       const hidden = new Array(pointCount);
       const color = new Float32Array(pointCount * 3);
       console.log(mniData);
@@ -396,16 +405,18 @@ class BrainScene extends Component {
               hiddenIndexes.push(i);
             }
           } */
-          opacity[pointCoord] = (this.state.resAllLfp[pointCoord][this.state.displaySettings.moment] + 100)/200;
+          size[pointCoord] = (this.state.resAllLfp[pointCoord][this.state.displaySettings.moment] + 100)/200;
+          hidden[pointCoord] = 0;
+        } else {
+          hidden[pointCoord] = 1;
         }
       }
       geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
-      geometry.setAttribute("opacity", new THREE.BufferAttribute(opacity, 1));
+      geometry.setAttribute("size", new THREE.BufferAttribute(size, 1));
       geometry.setAttribute("color", new THREE.Float32BufferAttribute(color, 3));
+      geometry.setAttribute("hidden", new THREE.Float32BufferAttribute(hidden, 1));
 
       const particles = new THREE.Points( geometry, this.state.material );
-      particles.initialOpacities = [...opacity];
-      particles.hidden = hidden;
       this.scene.add( particles );
       this.setState({dots: particles});
     }
