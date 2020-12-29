@@ -36,14 +36,14 @@ const dcnnColorsRGB = dcnnColors.map((color) => {
 });
 
 const categories = [
-  "house",
-  "face",
-  "animal",
-  "scene",
-  "tool",
-  "pseudoword",
-  "characters",
-  "noise",
+  "Houses",
+  "Faces",
+  "Animals",
+  "Scenery",
+  "Tools",
+  "Pseudoword",
+  "Characters",
+  "Noise",
 ];
 
 const categoryDropdownOptions = categories.map((cat, i) => {
@@ -351,7 +351,7 @@ class BrainScene extends Component {
           color.array[i + 2] = gradientColor[2];
         }
 
-        size.array[pointCoord] = value;
+        size.array[pointCoord] = Math.max(value, Math.pow(value, 2));
       }
 
       color.needsUpdate = true;
@@ -473,9 +473,18 @@ class BrainScene extends Component {
 
     return <Grid columns={2}>
       {displaySettings &&
-      <GridColumn width={4} style={{paddingLeft: "2rem"}}>
+      <GridColumn width={4} style={{
+        paddingLeft: "2rem",
+        marginTop: "5rem",
+      }}>
         <Segment vertical>
           <Checkbox
+            style={{
+              width: "100%",
+              paddingBottom: "2rem",
+              paddingLeft: "1rem",
+              textAlign: "left",
+            }}
             toggle
             label='Sub-select stimulus image category'
             onChange={this.subSelectImg}
@@ -497,7 +506,7 @@ class BrainScene extends Component {
                     positive={this.state.displaySettings.subSelectImage === value}
                     onClick={() => this.toggleSubSelectImg(value)}>
                     <Image
-                      src='https://react.semantic-ui.com/images/wireframe/paragraph.png'/>
+                      src={`sprites/${text}.jpg`}/>
                     <p>{text}</p>
                   </Button>
                 </GridColumn>)}
@@ -517,14 +526,22 @@ class BrainScene extends Component {
           <Checkbox
             radio
             label="Baseline-normalized LFP responses"
-            style={{paddingLeft: "1rem", width: "100%"}}
+            style={{
+              paddingLeft: "1rem",
+              width: "100%",
+              textAlign: "left",
+            }}
             onChange={this.toggleHighGammaFrq}
             checked={!this.state.displaySettings.highGammaFrq}
           />
           <Checkbox
             radio
             label="Baseline-normalized neural responses in high gamma"
-            style={{paddingLeft: "1rem", width: "100%"}}
+            style={{
+              paddingLeft: "1rem",
+              width: "100%",
+              textAlign: "left",
+            }}
             onChange={this.toggleHighGammaFrq}
             checked={this.state.displaySettings.highGammaFrq}
           />
@@ -533,14 +550,22 @@ class BrainScene extends Component {
           <Checkbox
             radio
             label="Color-code in accordance with the change in activity"
-            style={{paddingLeft: "1rem", width: "100%"}}
+            style={{
+              paddingLeft: "1rem",
+              width: "100%",
+              textAlign: "left",
+            }}
             onChange={this.toggleColorCode}
             checked={!this.state.displaySettings.colorCoded}
           />
           <Checkbox
             radio
             label="Color-code the probes to reflect visual complexity of their representations based on DCNN mapping"
-            style={{paddingLeft: "1rem", width: "100%"}}
+            style={{
+              paddingLeft: "1rem",
+              width: "100%",
+              textAlign: "left",
+            }}
             onChange={this.toggleColorCode}
             checked={this.state.displaySettings.colorCoded}
           />
