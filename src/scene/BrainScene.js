@@ -297,6 +297,8 @@ class BrainScene extends Component {
         let prevValue;
         let hidden;
 
+        const dcnn = Number(this.state.dcnnLayer[pointCoord]);
+
         // categories && various datas
         if (subSelectImgChecked && subSelectImage !== "" && (colorCoded === false || dcnn !== -1)) {
           if (this.state.displaySettings.highGammaFrq) {
@@ -317,8 +319,6 @@ class BrainScene extends Component {
           }
         }
 
-        // dcnn settings
-        const dcnn = Number(this.state.dcnnLayer[pointCoord]);
         if (colorCoded === true) {
           if (dcnn !== -1) {
             color.array[i] = dcnnColorsRGB[dcnn][0];
