@@ -78,7 +78,7 @@ varying vec3 fragColor;
 void main() {
 
   float texOpacity = texture2D(tex, gl_PointCoord.st).a;
-  if (texOpacity < 0.5 || fragHidden == 1.0) // bit of a hack for now
+  if (texOpacity < 0.5 || fragHidden > 0.5) // bit of a hack for now
     {
         discard;
     }
@@ -291,7 +291,6 @@ class BrainScene extends Component {
         subSelectImgChecked,
         moment,
       } = this.state.displaySettings;
-      console.log(onlyPredictiveProbes);
       for (let i = 0; i < pointCount * 3; i += 3) {
         const pointCoord = i / 3;
 
