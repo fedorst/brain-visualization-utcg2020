@@ -350,7 +350,7 @@ class BrainScene extends Component {
           color.array[i + 2] = gradientColor[2];
         }
 
-        size.array[pointCoord] = Math.max(value, Math.pow(value, 2));
+        size.array[pointCoord] = (Math.cos(value*2*Math.PI) + 1)/2; // Math.max(value, Math.pow(value, 2));
       }
 
       color.needsUpdate = true;
