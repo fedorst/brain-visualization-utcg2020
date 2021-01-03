@@ -133,6 +133,7 @@ class BrainScene extends Component {
     await this.loadAllNPYs();
     this.setupDots();
     this.setState({initialized: true});
+    this.updateDots();
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
@@ -295,7 +296,6 @@ class BrainScene extends Component {
         const pointCoord = i / 3;
 
         let value;
-        let prevValue;
 
         // hidden check - only if we're colour coding and the electrode does not correspond to any dcnn level
         // or if the index is supposed to be hidden
@@ -322,19 +322,15 @@ class BrainScene extends Component {
         if (subSelectImgChecked && subSelectImage !== "" && (colorCoded === false || dcnn !== -1)) {
           if (this.state.displaySettings.highGammaFrq) {
             value = (this.state.resCtgFrq[subSelectImage][pointCoord][moment] + 3)/6;
-            prevValue = moment === 0 ? value : (this.state.resCtgFrq[subSelectImage][pointCoord][moment - 1] + 3)/6;
           } else {
             value = (this.state.resCtgLfp[subSelectImage][pointCoord][moment] + 100)/200;
-            prevValue = moment === 0 ? value : (this.state.resCtgLfp[subSelectImage][pointCoord][moment - 1] + 100)/200;
           }
         }
         if (!subSelectImgChecked || subSelectImage === "") {
           if (this.state.displaySettings.highGammaFrq) {
             value = (this.state.resAllFrq[pointCoord][moment] + 3)/6;
-            prevValue = moment === 0 ? value : (this.state.resAllFrq[pointCoord][moment - 1] + 3)/6;
           } else {
             value = (this.state.resAllLfp[pointCoord][moment] + 100)/200;
-            prevValue = moment === 0 ? value : (this.state.resAllLfp[pointCoord][moment - 1] + 100)/200;
           }
         }
 
@@ -344,7 +340,7 @@ class BrainScene extends Component {
           color.array[i + 1] = dcnnColorsRGB[dcnn][1];
           color.array[i + 2] = dcnnColorsRGB[dcnn][2];
         } else {
-          const gradientColor = redWhiteBlueGradient(value - prevValue);
+          const gradientColor = redWhiteBlueGradient(value * 2 - 1);
           color.array[i] = gradientColor[0];
           color.array[i + 1] = gradientColor[1];
           color.array[i + 2] = gradientColor[2];
