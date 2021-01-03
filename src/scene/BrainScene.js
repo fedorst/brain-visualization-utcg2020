@@ -69,7 +69,6 @@ void main() {
 }
 `;
 const fragmentShader = `
-// uniform vec3 color;
 uniform sampler2D tex;
 
 varying float fragHidden;
@@ -77,11 +76,9 @@ varying vec3 fragColor;
 
 void main() {
 
+  if (fragHidden > 0.9) discard;
   float texOpacity = texture2D(tex, gl_PointCoord.st).a;
-  if (texOpacity < 0.5 || fragHidden > 0.5) // bit of a hack for now
-    {
-        discard;
-    }
+  if (texOpacity < 0.5) discard;
  
   gl_FragColor = vec4(fragColor.rgb, texOpacity);
 }
