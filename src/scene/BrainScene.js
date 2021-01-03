@@ -555,7 +555,7 @@ class BrainScene extends Component {
           />
           <Checkbox
             radio
-            label="Color-code the probes to reflect visual complexity of their representations based on DCNN mapping"
+            label="Color-code the probes to reflect complexity of visual representations based on DCNN mapping"
             style={{
               paddingLeft: "1rem",
               width: "100%",
