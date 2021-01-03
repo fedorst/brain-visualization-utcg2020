@@ -373,30 +373,6 @@ class BrainScene extends Component {
           color[i] = 1.0;
           color[i + 1] = 1.0;
           color[i + 2] = 1.0;
-          /* const point = new THREE.Vector3(x, y, z);
-          const raycaster = new THREE.Raycaster();
-          raycaster.set(point, new THREE.Vector3(0, 0, 1));
-          const intersects = raycaster.intersectObject(mesh);
-          if (intersects.length > 0) { // Points is in object
-            color[i] = 1.0;
-            color[i + 1] = 1.0;
-            color[i + 2] = 1.0;
-            // hidden[pointCoord] = false;
-            // console.log("Point is in object");
-          } else {
-            color[i] = 1.0;
-            color[i + 1] = 0.2;
-            color[i + 2] = 0.2;
-            // hidden[pointCoord] = true;
-            hiddenIndexes.push(pointCoord);
-            // opacity[pointCoord] = 0.0;
-            // console.log("Point is NOT in object");
-          }
-          /* for (let i = 0; i < hidden.length; i += 1) {
-            if (hidden[i] == true) {
-              hiddenIndexes.push(i);
-            }
-          } */
           size[pointCoord] = (this.state.resAllLfp[pointCoord][this.state.displaySettings.moment] + 100)/200;
           hidden[pointCoord] = 0;
         } else {
