@@ -464,7 +464,9 @@ class BrainScene extends Component {
   }
 
   resetTime = () => {
-    this.setState({playing: false, displaySettings: {...this.state.displaySettings, moment: 0}});
+    this.setState({playing: false});
+    this.updateMoment(0);
+    this.slider.setState({position: 0}); // visual hack, otherwise slider won't reset properly
   }
 
   render() {
@@ -572,6 +574,7 @@ class BrainScene extends Component {
         <Segment vertical>
           <Header>Time: {momentToMs(this.state.displaySettings.moment)}</Header>
           <Slider
+            ref={(r) => this.slider = r}
             value={this.state.displaySettings.moment}
             discrete
             color="red"
