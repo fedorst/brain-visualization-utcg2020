@@ -17,6 +17,7 @@ import {hiddenIndexes, hexToRgb, preprocessNpy, redWhiteBlueGradient, momentToMs
 const style = {
   height: 750, // we can control scene size by setting container dimensions
 };
+const maxMoment = 47;
 
 const dcnnColors = [
   "#25219E",
@@ -101,6 +102,7 @@ class BrainScene extends Component {
         highGammaFrq: false,
         moment: 0,
       },
+      playing: false,
       brainOpacity: 0.4,
       initialized: false,
       clock: new THREE.Clock(),
@@ -131,6 +133,11 @@ class BrainScene extends Component {
     this.setupDots();
     this.setState({initialized: true});
     this.updateDots();
+    setInterval(() => {
+      if (this.state.playing === true) {
+        this.timeForward();
+      }
+    }, 200);
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
@@ -428,12 +435,36 @@ class BrainScene extends Component {
   updateMoment = (moment) => {
     this.setState({displaySettings: {...this.state.displaySettings, moment}});
   }
+
+  timeForward = () => {
+    if (this.state.displaySettings.moment !== maxMoment) {
+      this.updateMoment(this.state.displaySettings.moment + 1);
+    }
+    if (this.state.displaySettings.moment === maxMoment) {
+      this.setState({playing: false});
+    }
+  }
+
+  timeBackward = () => {
+    if (this.state.displaySettings.moment !== 0) {
+      this.updateMoment(this.state.displaySettings.moment - 1);
+    }
+  }
+
   updateBrainOpacity = (brainOpacity) => {
     this.setState({brainOpacity});
     if (this.state.mesh) {
       const material = this.state.mesh.material;
       material.opacity = brainOpacity;
     }
+  }
+
+  togglePlayPause = () => {
+    this.setState({playing: !this.state.playing});
+  }
+
+  resetTime = () => {
+    this.setState({playing: false, displaySettings: {...this.state.displaySettings, moment: 0}});
   }
 
   render() {
@@ -547,11 +578,33 @@ class BrainScene extends Component {
             settings={{
               start: 0,
               min: 0,
-              max: 47,
+              max: maxMoment,
               step: 1,
               onChange: this.updateMoment,
             }}
           />
+          <Button.Group>
+            <Button
+              disabled={this.state.playing}
+              labelPosition='left'
+              icon='left chevron'
+              content='Previous'
+              onClick={this.timeBackward} />
+            <Button
+              icon={this.state.playing ? "pause" : "play"}
+              content={this.state.playing ? "Pause" : "Play"}
+              onClick={this.togglePlayPause}/>
+            <Button
+              icon='undo'
+              content='Reset'
+              onClick={this.resetTime}/>
+            <Button
+              disabled={this.state.playing}
+              labelPosition='right'
+              icon='right chevron'
+              content='Next'
+              onClick={this.timeForward} />
+          </Button.Group>
         </Segment>
         <Segment vertical>
           <Header>Brain opacity: {this.state.brainOpacity}</Header>
