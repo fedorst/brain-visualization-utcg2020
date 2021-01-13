@@ -1,10 +1,9 @@
-import React, {Component} from "react";
+import React, {Component, createRef} from "react";
 import * as THREE from "three";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
 import getNPY from "../helpers/getNPY";
-import {Button, Image, Grid, GridColumn, Checkbox, Header, Segment} from "semantic-ui-react";
-import {Slider} from "react-semantic-ui-range";
+import {Grid, GridColumn, Sticky, Ref} from "semantic-ui-react";
 import mniCoords from "../helpers/mni_coordinates.npy";
 import dcnnLayerFile from "../helpers/dcnn_layer.npy";
 import resAllFrqFile from "../helpers/neural_responses_all_frq.npy";
@@ -12,12 +11,13 @@ import resAllLfpFile from "../helpers/neural_responses_all_lfp.npy";
 import resCtgFrqFile from "../helpers/neural_responses_ctg_frq.npy";
 import resCtgLfpFile from "../helpers/neural_responses_ctg_lfp.npy";
 import predictiveFile from "../helpers/predictive.npy";
-import {hiddenIndexes, hexToRgb, preprocessNpy, redWhiteBlueGradient, momentToMs} from "../helpers/Utility";
+import {hiddenIndexes, hexToRgb, preprocessNpy, redWhiteBlueGradient, maxMoment} from "../helpers/Utility";
+import {PageSidebar} from "./PageSidebar";
+import {PageHeader} from "./PageHeader";
 
-const style = {
+const sceneStyle = {
   height: 750, // we can control scene size by setting container dimensions
 };
-const maxMoment = 47;
 
 const dcnnColors = [
   "#25219E",
@@ -34,21 +34,6 @@ const dcnnColors = [
 const dcnnColorsRGB = dcnnColors.map((color) => {
   const rgbObj = hexToRgb(color);
   return [parseFloat(rgbObj.r)/255.0, parseFloat(rgbObj.g)/255.0, parseFloat(rgbObj.b)/255.0];
-});
-
-const categories = [
-  "Houses",
-  "Faces",
-  "Animals",
-  "Scenery",
-  "Tools",
-  "Pseudoword",
-  "Characters",
-  "Noise",
-];
-
-const categoryDropdownOptions = categories.map((cat, i) => {
-  return {key: cat, text: cat, value: i.toString()};// content: contentElement(colors[i], cat)};
 });
 
 const sprite = new THREE.TextureLoader().load( "sprites/disc.png" );
@@ -88,11 +73,14 @@ void main() {
 const brainMaterial = new THREE.MeshLambertMaterial();
 
 class BrainScene extends Component {
+  contextRef = createRef();
+
   state = {
     brainData: [],
   }
 
   async componentDidMount() {
+    document.title = "Human Brain Activity";
     this.setState({
       displaySettings: {
         subSelectImgChecked: false,
@@ -135,7 +123,7 @@ class BrainScene extends Component {
     this.updateDots();
     setInterval(() => {
       if (this.state.playing === true) {
-        this.timeForward();
+        this.hooks.timeForward();
       }
     }, 200);
   }
@@ -397,237 +385,100 @@ class BrainScene extends Component {
     }
   }
 
-  subSelectImg = () => {
-    this.setState((prevState) =>
-      ({displaySettings: {
-        ...prevState.displaySettings,
-        subSelectImgChecked: !prevState.displaySettings.subSelectImgChecked,
-      }}));
-  };
-  togglePredictiveProbes = () => {
-    this.setState((prevState) =>
-      ({displaySettings: {
-        ...prevState.displaySettings,
-        onlyPredictiveProbes: !prevState.displaySettings.onlyPredictiveProbes,
-      }}));
-  };
-  toggleHighGammaFrq = () => {
-    this.setState((prevState) =>
-      ({displaySettings: {
-        ...prevState.displaySettings,
-        highGammaFrq: !prevState.displaySettings.highGammaFrq,
-      }}));
-  };
-  toggleSubSelectImg = (value) => {
-    this.setState((prevState) =>
-      ({displaySettings: {
-        ...prevState.displaySettings,
-        subSelectImage: prevState.displaySettings.subSelectImage === value ? "" : value,
-      }}));
-  };
-  toggleColorCode = () => {
-    this.setState((prevState) =>
-      ({displaySettings: {
-        ...prevState.displaySettings,
-        colorCoded: !prevState.displaySettings.colorCoded,
-      }}));
-  };
+  hooks = {
+    subSelectImg: () => {
+      this.setState((prevState) =>
+        ({displaySettings: {
+          ...prevState.displaySettings,
+          subSelectImgChecked: !prevState.displaySettings.subSelectImgChecked,
+        }}));
+    },
+    togglePredictiveProbes: () => {
+      this.setState((prevState) =>
+        ({displaySettings: {
+          ...prevState.displaySettings,
+          onlyPredictiveProbes: !prevState.displaySettings.onlyPredictiveProbes,
+        }}));
+    },
+    toggleHighGammaFrq: () => {
+      this.setState((prevState) =>
+        ({displaySettings: {
+          ...prevState.displaySettings,
+          highGammaFrq: !prevState.displaySettings.highGammaFrq,
+        }}));
+    },
+    toggleSubSelectImg: (value) => {
+      this.setState((prevState) =>
+        ({displaySettings: {
+          ...prevState.displaySettings,
+          subSelectImage: prevState.displaySettings.subSelectImage === value ? "" : value,
+        }}));
+    },
+    toggleColorCode: () => {
+      this.setState((prevState) =>
+        ({displaySettings: {
+          ...prevState.displaySettings,
+          colorCoded: !prevState.displaySettings.colorCoded,
+        }}));
+    },
+    timeForward: () => {
+      if (this.state.displaySettings.moment !== maxMoment) {
+        this.updateMoment(this.state.displaySettings.moment + 1);
+      }
+      if (this.state.displaySettings.moment === maxMoment) {
+        this.setState({playing: false});
+      }
+    },
+    timeBackward: () => {
+      if (this.state.displaySettings.moment !== 0) {
+        this.updateMoment(this.state.displaySettings.moment - 1);
+      }
+    },
+    updateBrainOpacity: (brainOpacity) => {
+      this.setState({brainOpacity});
+      if (this.state.mesh) {
+        const material = this.state.mesh.material;
+        material.opacity = brainOpacity;
+      }
+    },
+    togglePlayPause: () => {
+      this.setState({playing: !this.state.playing});
+    },
+    resetTime: () => {
+      this.setState({playing: false});
+      this.updateMoment(0);
+    },
+  }
+
   updateMoment = (moment) => {
     this.setState({displaySettings: {...this.state.displaySettings, moment}});
   }
 
-  timeForward = () => {
-    if (this.state.displaySettings.moment !== maxMoment) {
-      this.updateMoment(this.state.displaySettings.moment + 1);
-    }
-    if (this.state.displaySettings.moment === maxMoment) {
-      this.setState({playing: false});
-    }
-  }
-
-  timeBackward = () => {
-    if (this.state.displaySettings.moment !== 0) {
-      this.updateMoment(this.state.displaySettings.moment - 1);
-    }
-  }
-
-  updateBrainOpacity = (brainOpacity) => {
-    this.setState({brainOpacity});
-    if (this.state.mesh) {
-      const material = this.state.mesh.material;
-      material.opacity = brainOpacity;
-    }
-  }
-
-  togglePlayPause = () => {
-    this.setState({playing: !this.state.playing});
-  }
-
-  resetTime = () => {
-    this.setState({playing: false});
-    this.updateMoment(0);
-    this.slider.setState({position: 0}); // visual hack, otherwise slider won't reset properly
-  }
 
   render() {
-    const displaySettings = this.state.displaySettings;
-
-    return <Grid columns={2}>
-      {displaySettings &&
-      <GridColumn width={4} style={{
-        paddingLeft: "2rem",
-        marginTop: "5rem",
-      }}>
-        <Segment vertical>
-          <Checkbox
-            style={{
-              width: "100%",
-              paddingBottom: "2rem",
-              paddingLeft: "1rem",
-              textAlign: "left",
-            }}
-            toggle
-            label='Sub-select stimulus image category'
-            onChange={this.subSelectImg}
-            checked={this.state.displaySettings.subSelectImgChecked}
+    return <Ref innerRef={this.contextRef}>
+      <Grid columns={2}>
+        <GridColumn width={4} style={{
+          paddingLeft: "2rem",
+          marginTop: "5rem",
+        }}>
+          <PageSidebar
+            displaySettings={this.state.displaySettings}
+            playing={this.state.playing}
+            hooks={this.hooks}
+            updateMoment={this.updateMoment}
+            slider={this.slider}
+            brainOpacity={this.state.brainOpacity}
           />
-          {
-            this.state.displaySettings.subSelectImgChecked &&
-            <Grid columns={4} style={{margin: "0.5rem"}}>
-              {categoryDropdownOptions.map(({key, text, value}) =>
-                <GridColumn
-                  key={key}
-                  width={4}
-                  style={{
-                    padding: "0rem",
-                  }}>
-                  <Button
-                    style={{padding: "0rem"}}
-                    fluid
-                    positive={this.state.displaySettings.subSelectImage === value}
-                    onClick={() => this.toggleSubSelectImg(value)}>
-                    <Image
-                      src={`sprites/${text}.jpg`}/>
-                    <p>{text}</p>
-                  </Button>
-                </GridColumn>)}
-            </Grid>
-          }
-          {
-            this.state.displaySettings.subSelectImgChecked &&
-            <Checkbox
-              toggle
-              label="Show only predictive probes"
-              onChange={this.togglePredictiveProbes}
-              checked={this.state.displaySettings.onlyPredictiveProbes}
-            />
-          }
-        </Segment>
-        <Segment vertical>
-          <Checkbox
-            radio
-            label="Baseline-normalized LFP responses"
-            style={{
-              paddingLeft: "1rem",
-              width: "100%",
-              textAlign: "left",
-            }}
-            onChange={this.toggleHighGammaFrq}
-            checked={!this.state.displaySettings.highGammaFrq}
-          />
-          <Checkbox
-            radio
-            label="Baseline-normalized neural responses in high gamma"
-            style={{
-              paddingLeft: "1rem",
-              width: "100%",
-              textAlign: "left",
-            }}
-            onChange={this.toggleHighGammaFrq}
-            checked={this.state.displaySettings.highGammaFrq}
-          />
-        </Segment>
-        <Segment vertical>
-          <Checkbox
-            radio
-            label="Color-code in accordance with the change in activity"
-            style={{
-              paddingLeft: "1rem",
-              width: "100%",
-              textAlign: "left",
-            }}
-            onChange={this.toggleColorCode}
-            checked={!this.state.displaySettings.colorCoded}
-          />
-          <Checkbox
-            radio
-            label="Color-code the probes to reflect complexity of visual representations based on DCNN mapping"
-            style={{
-              paddingLeft: "1rem",
-              width: "100%",
-              textAlign: "left",
-            }}
-            onChange={this.toggleColorCode}
-            checked={this.state.displaySettings.colorCoded}
-          />
-        </Segment>
-        <Segment vertical>
-          <Header>Time: {momentToMs(this.state.displaySettings.moment)}</Header>
-          <Slider
-            ref={(r) => this.slider = r}
-            value={this.state.displaySettings.moment}
-            discrete
-            color="red"
-            settings={{
-              start: 0,
-              min: 0,
-              max: maxMoment,
-              step: 1,
-              onChange: this.updateMoment,
-            }}
-          />
-          <Button.Group>
-            <Button
-              disabled={this.state.playing}
-              labelPosition='left'
-              icon='left chevron'
-              content='Previous'
-              onClick={this.timeBackward} />
-            <Button
-              icon={this.state.playing ? "pause" : "play"}
-              content={this.state.playing ? "Pause" : "Play"}
-              onClick={this.togglePlayPause}/>
-            <Button
-              icon='undo'
-              content='Reset'
-              onClick={this.resetTime}/>
-            <Button
-              disabled={this.state.playing}
-              labelPosition='right'
-              icon='right chevron'
-              content='Next'
-              onClick={this.timeForward} />
-          </Button.Group>
-        </Segment>
-        <Segment vertical>
-          <Header>Brain opacity: {this.state.brainOpacity}</Header>
-          <Slider
-            value={this.state.brainOpacity}
-            color="red"
-            settings={{
-              start: 0.4,
-              min: 0,
-              max: 1,
-              step: 0.025,
-              onChange: this.updateBrainOpacity,
-            }}
-          />
-        </Segment>
-      </GridColumn>}
-      <GridColumn width={12}>
-        <div style={style} ref={(ref) => (this.el = ref)}/>
-      </GridColumn>
-    </Grid>;
+        </GridColumn>
+        <GridColumn width={12}>
+          <Sticky context={this.contextRef}>
+            <PageHeader/>
+            <div style={sceneStyle} ref={(ref) => (this.el = ref)}/>
+          </Sticky>
+        </GridColumn>
+      </Grid>
+    </Ref>;
   }
 
   loadModel(loader, scene, model) {
