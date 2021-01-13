@@ -18,6 +18,8 @@ import {PageHeader} from "./PageHeader";
 const sceneStyle = {
   height: 750, // we can control scene size by setting container dimensions
 };
+const totalTime = 20000; // 20s
+const msPerMoment = totalTime / maxMoment;
 
 const dcnnColors = [
   "#25219E",
@@ -44,8 +46,11 @@ attribute vec3 color;
 attribute float hidden;
 attribute int dcnn;
 attribute float nodeValue;
+attribute float nextNodeValue;
 
 uniform float maxPointSize;
+uniform float timeToNext;
+
 varying vec3 fragColor;
 varying float fragHidden;
 
@@ -61,7 +66,7 @@ vec3 getColor(float nv) {
 }
 
 void main() {
-  fragColor = getColor(clamp(nodeValue, -1.0, 1.0));
+  fragColor = mix(getColor(clamp(nodeValue, -1.0, 1.0)), getColor(clamp(nextNodeValue, -1.0, 1.0)), timeToNext);
   fragHidden = hidden;
 
   gl_PointSize = maxPointSize * pow(abs(nodeValue), 1.5);
@@ -118,6 +123,10 @@ class BrainScene extends Component {
             type: "f",
             value: 25.0,
           },
+          timeToNext: {
+            type: "f",
+            value: 0.0,
+          },
         },
         vertexShader: vertexShader,
         fragmentShader: fragmentShader,
@@ -135,11 +144,6 @@ class BrainScene extends Component {
     this.setupDots();
     this.setState({initialized: true});
     this.updateDots();
-    setInterval(() => {
-      if (this.state.playing === true) {
-        this.hooks.timeForward();
-      }
-    }, 200);
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
@@ -263,12 +267,24 @@ class BrainScene extends Component {
   };
 
   startAnimationLoop = () => {
-    // const delta = this.state.clock && this.state.clock.getDelta();
+    const delta = this.state.clock && this.state.clock.getDelta();
     // const elapsed = this.state.clock && this.state.clock.getElapsedTime();
     this.renderer.render(this.scene, this.camera);
     // The window.requestAnimationFrame() method tells the browser that you wish to perform
     // an animation and requests that the browser call a specified function
     // to update an animation before the next repaint
+    if (!this.state.clock.running && this.state.playing) {
+      this.state.clock.start();
+    }
+    if (this.state.clock.running && !this.state.playing) {
+      this.state.clock.stop();
+    }
+    if (this.state.displaySettings.moment >= maxMoment && this.state.clock.running) {
+      this.hooks.togglePlayPause();
+      this.state.clock.stop();
+    } else if (this.state.clock.running && this.state.playing) {
+      this.updateMoment(this.state.displaySettings.moment + 1000*delta/msPerMoment);
+    }
     this.requestID = window.requestAnimationFrame(this.startAnimationLoop);
   };
 
@@ -290,6 +306,7 @@ class BrainScene extends Component {
       const pointCount = mniData.length / 3;
       const color = this.state.dots.geometry.attributes.color;
       const nodeValue = this.state.dots.geometry.attributes.nodeValue;
+      const nextNodeValue = this.state.dots.geometry.attributes.nextNodeValue;
       const hidden = this.state.dots.geometry.attributes.hidden;
       const dcnnAttribute = this.state.dots.geometry.attributes.dcnn;
 
@@ -300,10 +317,36 @@ class BrainScene extends Component {
         subSelectImgChecked,
         moment,
       } = this.state.displaySettings;
+
+      const timeToNextUniform = this.state.material.uniforms.timeToNext;
+
+      // categories && various datas
+      let curMoment;
+      let nextMoment;
+      let timeToNext;
+
+      if (moment % 1 === 0) {
+        curMoment = moment;
+        timeToNext = 0.0;
+      } else {
+        curMoment = Math.floor(moment);
+        timeToNext = moment - curMoment;
+      }
+      timeToNextUniform.value = timeToNext;
+      timeToNextUniform.needsUpdate = true;
+
+      nextMoment = curMoment + 1;
+      if (curMoment === maxMoment) {
+        nextMoment = curMoment;
+      }
+
+      console.log(timeToNext);
+
       for (let i = 0; i < pointCount * 3; i += 3) {
         const pointCoord = i / 3;
 
         let value;
+        let nextValue;
 
         // hidden check - only if we're colour coding and the electrode does not correspond to any dcnn level
         // or if the index is supposed to be hidden
@@ -326,19 +369,23 @@ class BrainScene extends Component {
           hidden.array[pointCoord] = 0;
         }
 
-        // categories && various datas
+
         if (subSelectImgChecked && subSelectImage !== "" && (colorCoded === false || dcnn !== -1)) {
           if (this.state.displaySettings.highGammaFrq) {
-            value = (this.state.resCtgFrq[subSelectImage][pointCoord][moment] + 3)/6;
+            value = (this.state.resCtgFrq[subSelectImage][pointCoord][curMoment] + 3)/6;
+            nextValue = (this.state.resCtgFrq[subSelectImage][pointCoord][nextMoment] + 3)/6;
           } else {
-            value = (this.state.resCtgLfp[subSelectImage][pointCoord][moment] + 100)/200;
+            value = (this.state.resCtgLfp[subSelectImage][pointCoord][curMoment] + 100)/200;
+            nextValue = (this.state.resCtgLfp[subSelectImage][pointCoord][nextMoment] + 100)/200;
           }
         }
         if (!subSelectImgChecked || subSelectImage === "") {
           if (this.state.displaySettings.highGammaFrq) {
-            value = (this.state.resAllFrq[pointCoord][moment] + 3)/6;
+            value = (this.state.resAllFrq[pointCoord][curMoment] + 3)/6;
+            nextValue = (this.state.resAllFrq[pointCoord][nextMoment] + 3)/6;
           } else {
-            value = (this.state.resAllLfp[pointCoord][moment] + 100)/200;
+            value = (this.state.resAllLfp[pointCoord][curMoment] + 100)/200;
+            nextValue = (this.state.resAllLfp[pointCoord][nextMoment] + 100)/200;
           }
         }
 
@@ -352,11 +399,13 @@ class BrainScene extends Component {
           dcnnAttribute.array[pointCoord] = -1;
         }
         nodeValue.array[pointCoord] = value * 2 - 1;
+        nextNodeValue.array[pointCoord] = nextValue * 2 - 1;
       }
 
       color.needsUpdate = true;
       hidden.needsUpdate = true;
       nodeValue.needsUpdate = true;
+      nextNodeValue.needsUpdate = true;
       dcnnAttribute.needsUpdate = true;
     }
   }
@@ -369,6 +418,7 @@ class BrainScene extends Component {
 
       const position = new Float32Array(pointCount * 3);
       const nodeValue = new Float32Array(pointCount);
+      const nextNodeValue = new Float32Array(pointCount);
       const hidden = new Array(pointCount);
       const dcnn = new Int8Array(pointCount);
       const color = new Float32Array(pointCount * 3);
@@ -382,6 +432,7 @@ class BrainScene extends Component {
           position[i + 1] = y;
           position[i + 2] = z;
           nodeValue[pointCoord] = this.state.resAllLfp[pointCoord][this.state.displaySettings.moment]/100;
+          nextNodeValue[pointCoord] = this.state.resAllLfp[pointCoord][this.state.displaySettings.moment + 1]/100;
           hidden[pointCoord] = 0;
         } else {
           hidden[pointCoord] = 1;
@@ -391,6 +442,7 @@ class BrainScene extends Component {
       geometry.setAttribute("color", new THREE.Float32BufferAttribute(color, 3));
       geometry.setAttribute("hidden", new THREE.Float32BufferAttribute(hidden, 1));
       geometry.setAttribute("nodeValue", new THREE.Float32BufferAttribute(nodeValue, 1));
+      geometry.setAttribute("nextNodeValue", new THREE.Float32BufferAttribute(nextNodeValue, 1));
       geometry.setAttribute("dcnn", new THREE.Int32BufferAttribute(dcnn, 1));
 
       const particles = new THREE.Points( geometry, this.state.material );
@@ -456,6 +508,12 @@ class BrainScene extends Component {
       }
     },
     togglePlayPause: () => {
+      if (this.state.clock.running) {
+        this.state.clock.stop();
+      } else {
+        this.state.clock.start();
+        console.log("started clock!");
+      }
       this.setState({playing: !this.state.playing});
     },
     resetTime: () => {
