@@ -527,30 +527,6 @@ class BrainScene extends Component {
         <Segment vertical>
           <Checkbox
             radio
-            label="Baseline-normalized LFP responses"
-            style={{
-              paddingLeft: "1rem",
-              width: "100%",
-              textAlign: "left",
-            }}
-            onChange={this.toggleHighGammaFrq}
-            checked={!this.state.displaySettings.highGammaFrq}
-          />
-          <Checkbox
-            radio
-            label="Baseline-normalized neural responses in high gamma"
-            style={{
-              paddingLeft: "1rem",
-              width: "100%",
-              textAlign: "left",
-            }}
-            onChange={this.toggleHighGammaFrq}
-            checked={this.state.displaySettings.highGammaFrq}
-          />
-        </Segment>
-        <Segment vertical>
-          <Checkbox
-            radio
             label="Color-code in accordance with the change in activity"
             style={{
               paddingLeft: "1rem",
