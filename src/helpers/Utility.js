@@ -75,9 +75,9 @@ const redWhiteBlueGradient = (change) => {
   // change can be from -1 to 1
   // in case of -1, red, in case of 0, white, in case of 1, blue
   if (change <= 0) {
-    return [1 - Math.pow(change, 0.25), 1 - Math.pow(change, 0.25), 1];
+    return [0, 0, Math.abs(change)];
   } else {
-    return [1, 1 - Math.pow(Math.abs(change), 0.25), 1 - Math.pow(Math.abs(change), 0.25)];
+    return [Math.abs(change), 0, 0];
   }
 };
 
