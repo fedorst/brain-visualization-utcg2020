@@ -18,7 +18,7 @@ import {PageHeader} from "./PageHeader";
 const sceneStyle = {
   height: 750, // we can control scene size by setting container dimensions
 };
-const totalTime = 20000; // 20s
+const totalTime = 10000; // 10s
 const msPerMoment = totalTime / maxMoment;
 
 const dcnnColors = [
@@ -69,7 +69,7 @@ void main() {
   fragColor = mix(getColor(clamp(nodeValue, -1.0, 1.0)), getColor(clamp(nextNodeValue, -1.0, 1.0)), timeToNext);
   fragHidden = hidden;
 
-  gl_PointSize = maxPointSize * pow(abs(nodeValue), 1.5);
+  gl_PointSize = maxPointSize * pow(abs(mix(nodeValue, nextNodeValue, timeToNext)), 1.5);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
@@ -332,6 +332,7 @@ class BrainScene extends Component {
         curMoment = Math.floor(moment);
         timeToNext = moment - curMoment;
       }
+
       timeToNextUniform.value = timeToNext;
       timeToNextUniform.needsUpdate = true;
 
@@ -339,8 +340,6 @@ class BrainScene extends Component {
       if (curMoment === maxMoment) {
         nextMoment = curMoment;
       }
-
-      console.log(timeToNext);
 
       for (let i = 0; i < pointCount * 3; i += 3) {
         const pointCoord = i / 3;
@@ -512,7 +511,6 @@ class BrainScene extends Component {
         this.state.clock.stop();
       } else {
         this.state.clock.start();
-        console.log("started clock!");
       }
       this.setState({playing: !this.state.playing});
     },
