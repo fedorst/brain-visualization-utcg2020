@@ -6,9 +6,9 @@ import getNPY from "../helpers/getNPY";
 import {Grid, GridColumn, Sticky, Ref} from "semantic-ui-react";
 import mniCoords from "../helpers/mni_coordinates.npy";
 import dcnnLayerFile from "../helpers/dcnn_layer.npy";
-import resAllFrqFile from "../helpers/neural_responses_all_frq.npy";
+// import resAllFrqFile from "../helpers/neural_responses_all_frq.npy";
 import resAllLfpFile from "../helpers/neural_responses_all_lfp.npy";
-import resCtgFrqFile from "../helpers/neural_responses_ctg_frq.npy";
+// import resCtgFrqFile from "../helpers/neural_responses_ctg_frq.npy";
 import resCtgLfpFile from "../helpers/neural_responses_ctg_lfp.npy";
 import predictiveFile from "../helpers/predictive.npy";
 import {hiddenIndexes, hexToRgb, preprocessNpy, redWhiteBlueGradient, maxMoment} from "../helpers/Utility";
@@ -158,7 +158,8 @@ class BrainScene extends Component {
     // OrbitControls allow a camera to orbit around the object
     // https://threejs.org/docs/#examples/controls/OrbitControls
     this.controls = new OrbitControls(this.camera, this.el);
-    this.renderer = new THREE.WebGLRenderer();
+    this.renderer = new THREE.WebGLRenderer({alpha: true});
+    this.renderer.setClearColor( 0xffffff, 0);
     this.renderer.setSize(width, height);
     this.el.appendChild(this.renderer.domElement); // mount using React ref
   };
@@ -166,9 +167,9 @@ class BrainScene extends Component {
   async loadAllNPYs() {
     const brainData = (await getNPY(mniCoords)).data;
     const dcnnLayer = (await getNPY(dcnnLayerFile)).data;
-    const resAllFrq = preprocessNpy(await getNPY(resAllFrqFile)).tolist();
+    const resAllFrq = [];// preprocessNpy(await getNPY(resAllFrqFile)).tolist();
     const resAllLfp = preprocessNpy(await getNPY(resAllLfpFile)).tolist();
-    const resCtgFrq = preprocessNpy(await getNPY(resCtgFrqFile)).tolist();
+    const resCtgFrq = [];// preprocessNpy(await getNPY(resCtgFrqFile)).tolist();
     const resCtgLfp = preprocessNpy(await getNPY(resCtgLfpFile)).tolist();
     const predictive = preprocessNpy(await getNPY(predictiveFile)).tolist();
 
