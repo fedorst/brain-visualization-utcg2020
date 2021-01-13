@@ -32,7 +32,7 @@ const sidebarDCNNLayersDescription = <ReactMarkdown
 "cortex](https://www.nature.com/articles/s42003-018-0110-y)\", " +
 "Communications Biology, 2018)*"}</ReactMarkdown>;
 
-const creditsText = "Implemented by Fedor Stomakhin, Siim Parring and Hain Zappur as a part of the Computer Graphics " +
+const creditsText = "Implemented by Fedor Stomakhin, Siim Parring and Hain Zuppur as a part of the Computer Graphics " +
     "course at the Institute of Computer Science of University of Tartu, 2020";
 
 const categories = [

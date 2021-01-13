@@ -73,18 +73,8 @@ const preprocessNpy = (matrix) => {
   return nj.array(Object.values(data)).reshape(shape);
 };
 
-const redWhiteBlueGradient = (change) => {
-  // change can be from -1 to 1
-  // in case of -1, red, in case of 0, white, in case of 1, blue
-  if (change <= 0) {
-    return [0, 0, Math.abs(change)];
-  } else {
-    return [Math.abs(change), 0, 0];
-  }
-};
-
 const momentToMs = (moment) => {
   return `${((moment/47) * 1500 - 500).toFixed(2)}ms`;
 };
 
-export {hiddenIndexes, hexToRgb, maxMoment, preprocessNpy, redWhiteBlueGradient, momentToMs};
+export {hiddenIndexes, hexToRgb, maxMoment, preprocessNpy, momentToMs};

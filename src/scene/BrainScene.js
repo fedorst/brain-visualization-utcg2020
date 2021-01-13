@@ -11,7 +11,7 @@ import resAllLfpFile from "../helpers/neural_responses_all_lfp.npy";
 // import resCtgFrqFile from "../helpers/neural_responses_ctg_frq.npy";
 import resCtgLfpFile from "../helpers/neural_responses_ctg_lfp.npy";
 import predictiveFile from "../helpers/predictive.npy";
-import {hiddenIndexes, hexToRgb, preprocessNpy, redWhiteBlueGradient, maxMoment} from "../helpers/Utility";
+import {hiddenIndexes, hexToRgb, preprocessNpy, maxMoment} from "../helpers/Utility";
 import {PageSidebar} from "./PageSidebar";
 import {PageHeader} from "./PageHeader";
 
@@ -38,19 +38,33 @@ const dcnnColorsRGB = dcnnColors.map((color) => {
 
 const sprite = new THREE.TextureLoader().load( "sprites/disc.png" );
 const vertexShader = `
-attribute float size;
+#define PI 3.1415926535
+
 attribute vec3 color;
 attribute float hidden;
+attribute int dcnn;
+attribute float nodeValue;
 
 uniform float maxPointSize;
 varying vec3 fragColor;
 varying float fragHidden;
 
+vec3 getColor(float nv) {
+  if (dcnn != -1) {
+    return color;
+  }
+  if(nv <= 0.0) {
+    return vec3(0.0, 0.0, abs(nv)); 
+  } else { 
+    return vec3(abs(nv), 0.0, 0.0);
+  }
+}
+
 void main() {
-  fragColor = color;
+  fragColor = getColor(clamp(nodeValue, -1.0, 1.0));
   fragHidden = hidden;
 
-  gl_PointSize = maxPointSize * size;
+  gl_PointSize = maxPointSize * pow(abs(nodeValue), 1.5);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
@@ -62,9 +76,9 @@ varying vec3 fragColor;
 
 void main() {
 
-  if (fragHidden > 0.9) discard;
+  if(fragHidden > 0.9) discard;
   float texOpacity = texture2D(tex, gl_PointCoord.st).a;
-  if (texOpacity < 0.5) discard;
+  if(texOpacity < 0.5) discard;
  
   gl_FragColor = vec4(fragColor.rgb, texOpacity);
 }
@@ -102,7 +116,7 @@ class BrainScene extends Component {
           },
           maxPointSize: {
             type: "f",
-            value: 20.0,
+            value: 25.0,
           },
         },
         vertexShader: vertexShader,
@@ -275,8 +289,9 @@ class BrainScene extends Component {
       const mniData = this.state.brainData;
       const pointCount = mniData.length / 3;
       const color = this.state.dots.geometry.attributes.color;
-      const size = this.state.dots.geometry.attributes.size;
+      const nodeValue = this.state.dots.geometry.attributes.nodeValue;
       const hidden = this.state.dots.geometry.attributes.hidden;
+      const dcnnAttribute = this.state.dots.geometry.attributes.dcnn;
 
       const {
         colorCoded,
@@ -327,24 +342,22 @@ class BrainScene extends Component {
           }
         }
 
+        dcnnAttribute.array[pointCoord] = dcnn;
         // handle colours
         if (colorCoded === true && dcnn !== -1) {
           color.array[i] = dcnnColorsRGB[dcnn][0];
           color.array[i + 1] = dcnnColorsRGB[dcnn][1];
           color.array[i + 2] = dcnnColorsRGB[dcnn][2];
         } else {
-          const gradientColor = redWhiteBlueGradient(value * 2 - 1);
-          color.array[i] = gradientColor[0];
-          color.array[i + 1] = gradientColor[1];
-          color.array[i + 2] = gradientColor[2];
+          dcnnAttribute.array[pointCoord] = -1;
         }
-
-        size.array[pointCoord] = (Math.cos(Math.min(Math.max(0, value), 1)*2*Math.PI) + 1)/2;
+        nodeValue.array[pointCoord] = value * 2 - 1;
       }
 
       color.needsUpdate = true;
       hidden.needsUpdate = true;
-      size.needsUpdate = true;
+      nodeValue.needsUpdate = true;
+      dcnnAttribute.needsUpdate = true;
     }
   }
 
@@ -355,30 +368,30 @@ class BrainScene extends Component {
       const geometry = new THREE.BufferGeometry();
 
       const position = new Float32Array(pointCount * 3);
-      const size = new Float32Array(pointCount);
+      const nodeValue = new Float32Array(pointCount);
       const hidden = new Array(pointCount);
+      const dcnn = new Int8Array(pointCount);
       const color = new Float32Array(pointCount * 3);
 
       for (let i = 0; i < pointCount * 3; i += 3) {
         const pointCoord = i / 3;
+        dcnn[pointCoord] = -1;
         if (!hiddenIndexes.includes(pointCoord)) {
           const [x, y, z] = [-mniData[i], mniData[i + 2], -mniData[i + 1]];
           position[i] = x;
           position[i + 1] = y;
           position[i + 2] = z;
-          color[i] = 1.0;
-          color[i + 1] = 1.0;
-          color[i + 2] = 1.0;
-          size[pointCoord] = (this.state.resAllLfp[pointCoord][this.state.displaySettings.moment] + 100)/200;
+          nodeValue[pointCoord] = this.state.resAllLfp[pointCoord][this.state.displaySettings.moment]/100;
           hidden[pointCoord] = 0;
         } else {
           hidden[pointCoord] = 1;
         }
       }
       geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
-      geometry.setAttribute("size", new THREE.BufferAttribute(size, 1));
       geometry.setAttribute("color", new THREE.Float32BufferAttribute(color, 3));
       geometry.setAttribute("hidden", new THREE.Float32BufferAttribute(hidden, 1));
+      geometry.setAttribute("nodeValue", new THREE.Float32BufferAttribute(nodeValue, 1));
+      geometry.setAttribute("dcnn", new THREE.Int32BufferAttribute(dcnn, 1));
 
       const particles = new THREE.Points( geometry, this.state.material );
       this.scene.add( particles );
