@@ -116,30 +116,32 @@ export const PageSidebar = (props) => {
           displaySettings={displaySettings}/>
       </Segment>
       {sidebarDCNNLayersDescription}
-      <Segment vertical>
-        <Checkbox
-          radio
-          label="Baseline-normalized LFP responses"
-          style={{
-            paddingLeft: "1rem",
-            width: "100%",
-            textAlign: "left",
-          }}
-          onChange={hooks.toggleHighGammaFrq}
-          checked={!displaySettings.highGammaFrq}
-        />
-        <Checkbox
-          radio
-          label="Baseline-normalized neural responses in high gamma"
-          style={{
-            paddingLeft: "1rem",
-            width: "100%",
-            textAlign: "left",
-          }}
-          onChange={hooks.toggleHighGammaFrq}
-          checked={displaySettings.highGammaFrq}
-        />
-      </Segment>
+      {/*
+        <Segment vertical>
+          <Checkbox
+            radio
+            label="Baseline-normalized LFP responses"
+            style={{
+              paddingLeft: "1rem",
+              width: "100%",
+              textAlign: "left",
+            }}
+            onChange={hooks.toggleHighGammaFrq}
+            checked={!displaySettings.highGammaFrq}
+          />
+          <Checkbox
+            radio
+            label="Baseline-normalized neural responses in high gamma"
+            style={{
+              paddingLeft: "1rem",
+              width: "100%",
+              textAlign: "left",
+            }}
+            onChange={hooks.toggleHighGammaFrq}
+            checked={displaySettings.highGammaFrq}
+          />
+        </Segment>
+      */}
       <Segment vertical>
         <Checkbox
           radio
@@ -213,8 +215,8 @@ export const PageSidebar = (props) => {
           color="red"
           settings={{
             start: 0.4,
-            min: 0,
-            max: 1,
+            min: 0.0,
+            max: 1.0,
             step: 0.025,
             onChange: hooks.updateBrainOpacity,
           }}
